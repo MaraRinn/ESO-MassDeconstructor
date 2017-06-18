@@ -21,6 +21,7 @@ MD.defaults = {
   DeconstructOrnate = false,
   DeconstructBound = false,
   DeconstructSetPiece = false,
+  Debug = false,
   BankMode = false,
   Clothing = {
     maxQuality = 4,
@@ -111,7 +112,13 @@ function MD.addStuffToInventoryForBag(bagId)
   local GetItemInfo = GetItemInfo
   local zo_strformat = zo_strformat
   local GetItemName = GetItemName
+  local bagSize = GetBagSize(bagId)
+  local usableBagSize = GetBagUseableSize(bagId)
   local bagSlots = GetBagSize(bagId) -1
+  if bagId == BAG_SUBSCRIBER_BANK then bagSlots = 479 end
+  if MD.isDebug then
+    d("bagID: |cdddddd"..(bagId).."|r bagSlots: |cdddddd"..(usableBagSize).."/"..(bagSize).."|r")
+  end
   for slotIndex = 0, bagSlots do
     local itemType = GetItemType(bagId, slotIndex)
     local _, stack, _, _, _, equipType , _, quality = GetItemInfo(bagId, slotIndex)
@@ -345,12 +352,19 @@ function MD.updateStuffofInventory()
 
   MD.addStuffToInventoryForBag(BAG_BACKPACK)
   -- bank
-  if MD.settings.BankMode then MD.addStuffToInventoryForBag(BAG_BANK) end
+  if IsESOPlusSubscriber() then
+    if MD.isDebug then d("Subscriber") end
+    if MD.settings.BankMode then MD.addStuffToInventoryForBag(BAG_SUBSCRIBER_BANK) end
+  else
+    if MD.isDebug then d("Non-subscriber") end
+    if MD.settings.BankMode then MD.addStuffToInventoryForBag(BAG_BANK) end
+  end
 
 end
 
 function MD:OnCrafting(sameStation)
   MD.updateStuffofInventory() 
+  MD.isDebug = MD.settings.Debug
   if MD.isDebug then
     if MD.isStation == 1 then
       d("MD Clothier")
