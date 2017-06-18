@@ -4,8 +4,6 @@ Mass Deconstructor is a deconstructing & refining tool to help you clear your ba
 
 Use the AddOn Settings to configure the types of items to automatically deconstruct. Please be careful about allowing Mass Deconstructor to deconstruct "set items" with high quality.
 
-**This addon is not functional, I'm still learning how to write ESO AddOns**
-
 # History
 
 Originally written by ahmetertem as [Mass Deconstructor](http://www.esoui.com/downloads/info1118-MassDeconstructor.html), it stopped working with the Morrowind release.
