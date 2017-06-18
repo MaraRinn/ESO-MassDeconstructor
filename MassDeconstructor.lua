@@ -115,7 +115,6 @@ function MD.addStuffToInventoryForBag(bagId)
   local bagSize = GetBagSize(bagId)
   local usableBagSize = GetBagUseableSize(bagId)
   local bagSlots = GetBagSize(bagId) -1
-  if bagId == BAG_SUBSCRIBER_BANK then bagSlots = 479 end
   if MD.isDebug then
     d("bagID: |cdddddd"..(bagId).."|r bagSlots: |cdddddd"..(usableBagSize).."/"..(bagSize).."|r")
   end
@@ -351,13 +350,12 @@ function MD.updateStuffofInventory()
   }
 
   MD.addStuffToInventoryForBag(BAG_BACKPACK)
-  -- bank
-  if IsESOPlusSubscriber() then
-    if MD.isDebug then d("Subscriber") end
-    if MD.settings.BankMode then MD.addStuffToInventoryForBag(BAG_SUBSCRIBER_BANK) end
-  else
-    if MD.isDebug then d("Non-subscriber") end
-    if MD.settings.BankMode then MD.addStuffToInventoryForBag(BAG_BANK) end
+  if MD.settings.BankMode then 
+    -- add stuff from bank
+    -- subscribers get extra bank space
+    if IsESOPlusSubscriber() then MD.addStuffToInventoryForBag(BAG_SUBSCRIBER_BANK) end
+    -- regular bank
+    MD.addStuffToInventoryForBag(BAG_BANK)
   end
 
 end
