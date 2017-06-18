@@ -45,6 +45,12 @@ function MD.MakeMenu()
       setFunc = function(value) set.DeconstructOrnate = value end,
     },
     {
+      type = "checkbox",
+      name = "Debug",
+      getFunc = function() return set.Debug end,
+      setFunc = function(value) set.Debug = value end,
+    },
+    {
       type = "submenu",
       name = "Clothing Options",
       controls = {

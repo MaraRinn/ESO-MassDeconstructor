@@ -1,7 +1,7 @@
 ## Title: Mass Deconstructor
-## Description: This addon massly deconstruct all your item filtered by your conditions
-## APIVersion: 100011
-## Author: AhmetAmadErtem
+## Description: This addon mass deconstructs all items determined by your configured conditions
+## APIVersion: 100019
+## Author: MaraRinn
 ## Version: 1.0
 ## DependsOn:
 ## OptionalDependsOn: LibAddonMenu-2.0
