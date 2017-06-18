@@ -1,0 +1,10 @@
+## APIVersion: 100009
+## Title: LibItemInfo-1.0
+## Version: 1.0 r7
+## Author: Circonian
+## Description: A library used to aid in gathering item information.
+
+
+LibStub\LibStub.lua
+
+LibItemInfo-1.0.lua
