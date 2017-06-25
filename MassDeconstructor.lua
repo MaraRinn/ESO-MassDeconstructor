@@ -6,7 +6,7 @@ if MD == nil then MD = {} end
 local LII = LibStub:GetLibrary("LibItemInfo-1.0")
 
 MD.name = "MassDeconstructor"
-MD.version = "1.1a"
+MD.version = "1.2"
 MD.isDebug = false
 
 MD.settings = {}
@@ -238,17 +238,17 @@ function MD.addStuffToInventoryForBag(bagId)
 end
 
 function MD.yazbakem() 
-  MD.setList()
+  MD.setCurrentListForWorkstation()
 
   for itemLink, tablosu in pairs(MD.currentList) do
     --local name = GetItemName(tablosu.bagId, tablosu.slotIndex)
     --name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
-    d("|cff0000Deconstructable:|r "..itemLink)
+    d("|cff0000Deconstructable:|r "..itemLink.." x "..tablosu.stack)
   end
 
 end
 
-function MD.setList()
+function MD.setCurrentListForWorkstation()
   if MD.isStation == 1 then
     MD.currentList = MD.Inventory.clothier
   elseif MD.isStation == 2 then
@@ -297,7 +297,8 @@ function MD.startDeconstruction()
   end
 
   -- : refrest list for getting count
-  MD.setList()
+  MD.updateStuffofInventory()
+  MD.setCurrentListForWorkstation()
 
 
   -- : reset counter
@@ -306,32 +307,28 @@ function MD.startDeconstruction()
     MD.totalDeconstruct = MD.totalDeconstruct + tablosu.stack
   end
   d("Destructable item count: |cff0000"..(MD.totalDeconstruct).."|r")
+  MD.deconstructQueue = {}
+  for itemLink, tablosu in pairs( MD.currentList ) do
+    table.insert(MD.deconstructQueue, tablosu)
+  end
   MD.ContinueWork()
 end
 
 function MD.ContinueWork()
-  MD.updateStuffofInventory()
-  MD.setList()
   EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
-  if MD.totalDeconstruct > 0 then
-    for itemLink, tablosu in pairs( MD.currentList ) do
-      if MD.isStation == 4 then
-        ExtractEnchantingItem(tablosu.bagId, tablosu.slotIndex)
-      else 
-        SMITHING:AddItemToCraft(tablosu.bagId, tablosu.slotIndex)
-        SMITHING.deconstructionPanel:Extract()
-      end
-      MD.totalDeconstruct = MD.totalDeconstruct - 1
-      if true then
-        EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, function() 
-            MD.ContinueWork() 
-          end)
-      end
-      break
-    end
-  else
-
+  itemToDeconstruct = table.remove(MD.deconstructQueue)
+  if MD.isStation == 4 then
+    ExtractEnchantingItem(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
+  else 
+    SMITHING:AddItemToCraft(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
+    if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
   end
+  if #MD.deconstructQueue > 0 then
+    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, function() 
+        MD.ContinueWork() 
+      end)
+  end
+  if MD.isDebug then d("Deconstruct queue count: "..#MD.deconstructQueue) end
 end
 
 function MD.updateStuffofInventory()
