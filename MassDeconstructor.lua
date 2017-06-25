@@ -115,9 +115,6 @@ function MD.addStuffToInventoryForBag(bagId)
   local bagSize = GetBagSize(bagId)
   local usableBagSize = GetBagUseableSize(bagId)
   local bagSlots = GetBagSize(bagId) -1
-  if MD.isDebug then
-    d("bagID: |cdddddd"..(bagId).."|r bagSlots: |cdddddd"..(usableBagSize).."/"..(bagSize).."|r")
-  end
   for slotIndex = 0, bagSlots do
     local itemType = GetItemType(bagId, slotIndex)
     local _, stack, _, _, _, equipType , _, quality = GetItemInfo(bagId, slotIndex)
@@ -203,12 +200,9 @@ function MD.addStuffToInventoryForBag(bagId)
       end
     end
 
-    ------------------------------------
-    ------------------------------------
-    ------------------------------------
     if continue_ then
       name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
-      if not true then
+      if MD.isDebug then
         d(string.format("%s - %s" , itemLink, iTraitType))
         --d(isSetPc)
         --.."-"..stack.."-"..bagCount.."-"..bankCount)
@@ -285,7 +279,7 @@ function MD.isInWorkstationandTab()
   return true
 end
 
-function MD.startDeconsruction() 
+function MD.startDeconstruction() 
 
   if not MD.isInWorkstationandTab() then
     return
@@ -351,7 +345,6 @@ function MD.updateStuffofInventory()
 
   MD.addStuffToInventoryForBag(BAG_BACKPACK)
   if MD.settings.BankMode then 
-    -- add stuff from bank
     -- subscribers get extra bank space
     if IsESOPlusSubscriber() then MD.addStuffToInventoryForBag(BAG_SUBSCRIBER_BANK) end
     -- regular bank
@@ -388,6 +381,7 @@ function MD:OnCraftEnd()
     d("MD station leave")
   end
   KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
+  EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
 end
 
 
@@ -463,7 +457,7 @@ function MD.Initialize(event, addon)
     { -- I think you can have more than one button in your group if you add more of these sub-groups
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL),
       keybind = "MD_DECONSTRUCTOR_DECON_ALL",
-      callback = function() MD.startDeconsruction() end,
+      callback = function() MD.startDeconstruction() end,
       visible = function() return true or MD.isInWorkstationandTab()  end,
     },
     alignment = KEYBIND_STRIP_ALIGN_CENTER,
