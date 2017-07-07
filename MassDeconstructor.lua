@@ -241,9 +241,7 @@ function MD.yazbakem()
   MD.setCurrentListForWorkstation()
 
   for itemLink, tablosu in pairs(MD.currentList) do
-    --local name = GetItemName(tablosu.bagId, tablosu.slotIndex)
-    --name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
-    d("|cff0000Deconstructable:|r "..itemLink.." x "..tablosu.stack)
+    d("|cff0000Deconstructable:|r "..itemLink)
   end
 
 end
@@ -280,7 +278,6 @@ function MD.isInWorkstationandTab()
 end
 
 function MD.startDeconstruction() 
-
   if not MD.isInWorkstationandTab() then
     return
   end
@@ -310,8 +307,13 @@ function MD.startDeconstruction()
   MD.deconstructQueue = {}
   for itemLink, tablosu in pairs( MD.currentList ) do
     table.insert(MD.deconstructQueue, tablosu)
+    if MD.isDebug then
+      d("bagId:"..tablosu.bagId.."  slot:".. tablosu.slotIndex)
+    end
   end
-  MD.ContinueWork()
+  if #MD.deconstructQueue > 1 then
+    MD.ContinueWork()
+  end
 end
 
 function MD.ContinueWork()
@@ -319,7 +321,7 @@ function MD.ContinueWork()
   itemToDeconstruct = table.remove(MD.deconstructQueue)
   if MD.isStation == 4 then
     ExtractEnchantingItem(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
-  else 
+  else
     SMITHING:AddItemToCraft(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
     if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
   end
@@ -363,7 +365,6 @@ function MD:OnCrafting(sameStation)
     elseif MD.isStation == 4 then
       d("MD Enchanter")
     end
-
   end
   KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
   KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
