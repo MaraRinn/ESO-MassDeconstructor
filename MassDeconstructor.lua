@@ -59,8 +59,14 @@ local function IsItemProtected(bagId, slotId)
   end
 
   --FCO ItemSaver support
-  if FCOIsMarked and FCOIsMarked(GetItemInstanceId(bagId, slotId), {1,2,3,4,5,6,7,8,10,11,12}) then -- 9 is deconstruct
-    return true
+  if FCOIsMarked then
+    --Old FCOIS version < 1.0
+    if FCOIsMarked and FCOIsMarked(GetItemInstanceId(bagId, slotId), {1,2,3,4,5,6,7,8,10,11,12}) then -- 9 is deconstruct
+      return true
+    end
+  elseif FCOIS and FCOIS.IsDeconstructionLocked then
+    --New for FCOIS version >= 1.0
+    return FCOIS.IsDeconstructionLocked(bagId, slotId)
   end
 
   --FilterIt support
