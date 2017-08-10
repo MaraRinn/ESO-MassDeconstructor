@@ -131,7 +131,7 @@ function MD.addStuffToInventoryForBag(bagId)
     local isProtected = IsItemProtected(bagId, slotIndex)
     local isOrnated = MD:IsOrnate(bagId, slotIndex)
     local boundType = MD:isItemBindable(bagId, slotIndex)
-    local bagCount, bankCount = GetItemLinkStacks(itemLink)
+    local bagCount, bankCount, craftCount = GetItemLinkStacks(itemLink)
     local isSetPc = isSetPiece(itemLink)
     local iTraitType = GetItemLinkTraitInfo(itemLink)
     local isIntricate = iTraitType == 9 or iTraitType == 20
@@ -388,6 +388,20 @@ function MD:OnCraftEnd()
   EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
 end
 
+function MD.startRefining()
+  if not MD.isInWorkstationandTab() then
+    return
+  end
+  if MD.isStation == 4 then
+    return
+  end
+
+  if SMITHING.mode ~= SMITHING_MODE_REFINMENT then
+    SMITHING:SetMode(SMITHING_MODE_REFINEMENT)
+  end
+
+  d("Put refining stuff here")
+end
 
 local function processSlashCommands(option)	
   local options = {}
@@ -409,10 +423,31 @@ local function processSlashCommands(option)
 
 end
 
-
 function MD.test ()
-
-
+  d("testing")
+  local bagId = BAG_VIRTUAL
+  if HasCraftBagAccess() then
+    d("Has craft bag")
+    slotIndex = GetNextVirtualBagSlotId(nil)
+    while slotIndex ~= nil do
+      local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
+      itemType = GetItemLinkItemType(itemLink)
+      if (itemType == ITEMTYPE_RAW_MATERIAL
+        or itemType == ITEMTYPE_BLACKSMITHING_RAW_MATERIAL
+        or itemType == ITEMTYPE_CLOTHIER_RAW_MATERIAL
+        or itemType == ITEMTYPE_WOODWORKING_RAW_MATERIAL)
+        then
+        local name = GetItemName(bagId, slotIndex)
+        local backpackCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
+        local totalCount = backpackCount + bankCount + craftBagCount
+        if totalCount > 100 then
+          local emitText = zo_strformat("<<1>> <<2>>", name, totalCount)
+          d(emitText)
+        end
+      end
+      slotIndex = GetNextVirtualBagSlotId(slotIndex)
+    end
+  end
 end
 
 function MD:registerEvents()
@@ -453,6 +488,7 @@ function MD.Initialize(event, addon)
 
   -- make a label for our keybinding
   ZO_CreateStringId("SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL", "Mass Deconstruct")
+  ZO_CreateStringId("SI_BINDING_NAME_MD_DECONSTRUCTOR_REFINE_ALL", "Mass Refine")
 
   -- make our options menu
   MD.MakeMenu()
@@ -462,6 +498,12 @@ function MD.Initialize(event, addon)
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL),
       keybind = "MD_DECONSTRUCTOR_DECON_ALL",
       callback = function() MD.startDeconstruction() end,
+      visible = function() return true or MD.isInWorkstationandTab()  end,
+    },
+    {
+      name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_REFINE_ALL),
+      keybind = "MD_DECONSTRUCTOR_REFINE_ALL",
+      callback = function() MD.startRefining() end,
       visible = function() return true or MD.isInWorkstationandTab()  end,
     },
     alignment = KEYBIND_STRIP_ALIGN_CENTER,
