@@ -45,6 +45,12 @@ function MD.MakeMenu()
       setFunc = function(value) set.DeconstructOrnate = value end,
     },
     {
+    	type = "checkbox",
+    	name = "Mass Refining (beta)",
+    	getFunc = function() return set.MassRefineEnabled end,
+    	setFunc = function(value) set.MassRefineEnabled = value end,
+    },
+    {
       type = "checkbox",
       name = "Debug",
       getFunc = function() return set.Debug end,

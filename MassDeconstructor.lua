@@ -6,22 +6,16 @@ if MD == nil then MD = {} end
 local LII = LibStub:GetLibrary("LibItemInfo-1.0")
 
 MD.name = "MassDeconstructor"
-MD.version = "1.2"
-MD.isDebug = false
+MD.version = "1.3"
 
 MD.settings = {}
-
-
-MD.isStation = 0
-MD.totalDeconstruct = 0
-MD.currentList = {}
-MD.workFunc = nil
 
 MD.defaults = {
   DeconstructOrnate = false,
   DeconstructBound = false,
   DeconstructSetPiece = false,
   Debug = false,
+  MassRefineEnabled = false,
   BankMode = false,
   Clothing = {
     maxQuality = 4,
@@ -48,9 +42,13 @@ MD.Inventory = {
   enchanter = { },
   woodworker = { },
 }
+MD.refining = {}
 
-
-
+local function DebugMessage(message)
+  if MD.isDebug then
+    d(message)
+  end
+end
 
 local function IsItemProtected(bagId, slotId)
   --Item Saver support
@@ -79,8 +77,6 @@ local function IsItemProtected(bagId, slotId)
 
   return false
 end
-
-
 
 function MD:IsOrnate(bagId,slotId)
   return GetItemTrait(bagId,slotId) == ITEM_TRAIT_TYPE_ARMOR_ORNATE or GetItemTrait(bagId,slotId) == ITEM_TRAIT_TYPE_WEAPON_ORNATE
@@ -243,53 +239,27 @@ function MD.addStuffToInventoryForBag(bagId)
   end
 end
 
-function MD.yazbakem() 
+function MD.PrepareForDeconstruction() 
   MD.setCurrentListForWorkstation()
-
-  for itemLink, tablosu in pairs(MD.currentList) do
+  for itemLink, _ in pairs(MD.currentList) do
     d("|cff0000Deconstructable:|r "..itemLink)
   end
-
 end
 
 function MD.setCurrentListForWorkstation()
-  if MD.isStation == 1 then
+  if MD.isClothing then
     MD.currentList = MD.Inventory.clothier
-  elseif MD.isStation == 2 then
+  elseif MD.isBlacksmithing then
     MD.currentList = MD.Inventory.blacksmith
-  elseif MD.isStation == 3 then
+  elseif MD.isWoodworking then
     MD.currentList = MD.Inventory.woodworker
-  elseif MD.isStation == 4 then
+  elseif MD.isEnchanting then
     MD.currentList = MD.Inventory.enchanter
   end
 end  
 
-function MD.isInWorkstationandTab() 
-  if(MD.isStation == 0) then
-    --d("|cff0000You're not at crafting station|r")
-    return false
-  end
-  if MD.isStation == 4 then
-    if ENCHANTING.enchantingMode ~= ENCHANTING_MODE_EXTRACTION then
-      --d("|cff0000You must be at extraction tab|r")
-      -- return false
-    end
-  else
-    if SMITHING.mode ~= SMITHING_MODE_DECONSTRUCTION  then
-      --d("|cff0000You must be at deconstruction tab|r")
-      --return false
-    end
-  end
-  return true
-end
-
 function MD.startDeconstruction() 
-  if not MD.isInWorkstationandTab() then
-    return
-  end
-
-  -- : station = 4 == enchanter
-  if MD.isStation == 4 then
+  if MD.isEnchanting then
     if ENCHANTING.enchantingMode ~= ENCHANTING_MODE_EXTRACTION then
       ENCHANTING:SetEnchantingMode(ENCHANTING_MODE_EXTRACTION)
     end
@@ -303,7 +273,6 @@ function MD.startDeconstruction()
   MD.updateStuffofInventory()
   MD.setCurrentListForWorkstation()
 
-
   -- : reset counter
   MD.totalDeconstruct = 0
   for itemLink, tablosu in pairs( MD.currentList ) do
@@ -313,11 +282,9 @@ function MD.startDeconstruction()
   MD.deconstructQueue = {}
   for itemLink, tablosu in pairs( MD.currentList ) do
     table.insert(MD.deconstructQueue, tablosu)
-    if MD.isDebug then
-      d("bagId:"..tablosu.bagId.."  slot:".. tablosu.slotIndex)
-    end
+    DebugMessage("bagId:"..tablosu.bagId.."  slot:".. tablosu.slotIndex)
   end
-  if #MD.deconstructQueue > 1 then
+  if #MD.deconstructQueue > 0 then
     MD.ContinueWork()
   end
 end
@@ -325,18 +292,16 @@ end
 function MD.ContinueWork()
   EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
   itemToDeconstruct = table.remove(MD.deconstructQueue)
-  if MD.isStation == 4 then
+  if MD.isEnchanting then
     ExtractEnchantingItem(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
   else
     SMITHING:AddItemToCraft(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
     if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
   end
-  if #MD.deconstructQueue > 0 then
-    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, function() 
-        MD.ContinueWork() 
-      end)
+  if #MD.deconstructQueue > 0 or SMITHING.refinementPanel.extractionSlot:HasItem() then
+    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, MD.ContinueWork)
   end
-  if MD.isDebug then d("Deconstruct queue count: "..#MD.deconstructQueue) end
+  DebugMessage("Deconstruct queue count: "..#MD.deconstructQueue)
 end
 
 function MD.updateStuffofInventory()
@@ -358,49 +323,107 @@ function MD.updateStuffofInventory()
 
 end
 
-function MD:OnCrafting(sameStation)
-  MD.updateStuffofInventory() 
-  MD.isDebug = MD.settings.Debug
-  if MD.isDebug then
-    if MD.isStation == 1 then
-      d("MD Clothier")
-    elseif MD.isStation == 2 then
-      d("MD Blacksmith")
-    elseif MD.isStation == 3 then
-      d("MD Woodworker")
-    elseif MD.isStation == 4 then
-      d("MD Enchanter")
+local function ShouldRefineItem(bagId, slotIndex, itemLink)
+  itemType = GetItemLinkItemType(itemLink)
+  if (
+      itemType == ITEMTYPE_RAW_MATERIAL
+      or (MD.isBlacksmithing and itemType == ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)
+      or (MD.isClothing and itemType == ITEMTYPE_CLOTHIER_RAW_MATERIAL)
+      or (MD.isWoodworking and itemType == ITEMTYPE_WOODWORKING_RAW_MATERIAL)
+      ) then
+    local name = GetItemName(bagId, slotIndex)
+    local backpackCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
+    local totalCount = backpackCount + bankCount + craftBagCount
+    DebugMessage(zo_strformat("Should I refine <<2>> <<1>>?", itemLink, totalCount))
+    if totalCount >= GetRequiredSmithingRefinementStackSize() then
+      return true
     end
   end
-  KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
-  KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
-  if(MD.isStation > 0 and MD.isStation < 5) then
-    MD:yazbakem(MD.isStation)
+  return false
+end
+
+local function AddCraftingBagItemsToRefineQueue()
+  local bagId = BAG_VIRTUAL
+    DebugMessage("Checking crafting bag for refinable items")
+    slotIndex = GetNextVirtualBagSlotId(nil)
+    while slotIndex ~= nil do
+      slotIndex = GetNextVirtualBagSlotId(slotIndex)
+      local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
+      if ShouldRefineItem(bagId, slotIndex, itemLink) then
+        x = {}
+        x.bagId = bagId
+        x.slotIndex = slotIndex
+        x.itemLink = itemLink
+        table.insert(MD.refineQueue, x)
+        DebugMessage("Refine queue length: " .. #MD.refineQueue)
+      end
+    end
+end
+
+local function BuildRefiningQueue()
+  MD.refineQueue = {}
+  if HasCraftBagAccess() then
+    AddCraftingBagItemsToRefineQueue()
   end
 end
 
-function MD:OnCraftEnd()
-  MD.isStation = 0
-  if MD.isDebug then
-    d("MD station leave")
+local function StackBigEnoughToRefine()
+  local stackSize = SMITHING.refinementPanel.extractionSlot:GetStackCount()
+  local refiningQuantity = GetRequiredSmithingRefinementStackSize()
+  DebugMessage("Stack size: " .. stackSize .. ", Qty reqd: " .. refiningQuantity)
+  return (stackSize >= refiningQuantity)
+end
+
+local function NeedsNewStack()
+  if SMITHING.refinementPanel:IsExtractable() then
+    if StackBigEnoughToRefine then
+      -- Current stack is fine
+      return false
+    end
   end
-  KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
+  -- Need a new stack
+  return true
+end
+
+local function CleanupAfterRefining()
+  SMITHING.refinementPanel:ClearSelections()
+end
+
+local function ProcessRefiningQueue()
   EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
+  if NeedsNewStack() and #MD.refineQueue > 0 then
+    DebugMessage('Selecting item to extract')
+    local itemToRefine = table.remove(MD.refineQueue)
+    SMITHING:AddItemToCraft(itemToRefine.bagId, itemToRefine.slotIndex)
+  end
+  if MD.isDebug then
+    DebugMessage('(In debug mode. Check that item being refined.)')
+  else
+    SMITHING.refinementPanel:Extract()
+  end
+  if StackBigEnoughToRefine() then
+    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
+  else
+    DebugMessage('Nothing left to refine')
+    CleanupAfterRefining()
+  end
 end
 
-function MD.startRefining()
-  if not MD.isInWorkstationandTab() then
+function MD.StartRefining()
+  if not MD.massRefineEnabled then
+    d('Mass Refine is a beta feature. Please enable it in settings at your own risk.')
+    return false
+  end
+  if MD.isEnchanting then
     return
   end
-  if MD.isStation == 4 then
-    return
-  end
-
   if SMITHING.mode ~= SMITHING_MODE_REFINMENT then
     SMITHING:SetMode(SMITHING_MODE_REFINEMENT)
   end
-
-  d("Put refining stuff here")
+  BuildRefiningQueue()
+  if #MD.refineQueue > 0 then
+    ProcessRefiningQueue()
+  end
 end
 
 local function processSlashCommands(option)	
@@ -413,9 +436,7 @@ local function processSlashCommands(option)
   end
 
   if options[1] == "mk" then
-    MD.updateStuffofInventory() 
-  elseif options[1] == "c" then
-    MD.yazbakem(0)
+    MD.updateStuffofInventory()
   elseif options[1] == "test" then
     MD.test()
   end
@@ -424,53 +445,61 @@ local function processSlashCommands(option)
 end
 
 function MD.test ()
-  d("testing")
-  local bagId = BAG_VIRTUAL
-  if HasCraftBagAccess() then
-    d("Has craft bag")
-    slotIndex = GetNextVirtualBagSlotId(nil)
-    while slotIndex ~= nil do
-      local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
-      itemType = GetItemLinkItemType(itemLink)
-      if (itemType == ITEMTYPE_RAW_MATERIAL
-        or itemType == ITEMTYPE_BLACKSMITHING_RAW_MATERIAL
-        or itemType == ITEMTYPE_CLOTHIER_RAW_MATERIAL
-        or itemType == ITEMTYPE_WOODWORKING_RAW_MATERIAL)
-        then
-        local name = GetItemName(bagId, slotIndex)
-        local backpackCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
-        local totalCount = backpackCount + bankCount + craftBagCount
-        if totalCount > 100 then
-          local emitText = zo_strformat("<<1>> <<2>>", name, totalCount)
-          d(emitText)
-        end
-      end
-      slotIndex = GetNextVirtualBagSlotId(slotIndex)
-    end
-  end
 end
 
-function MD:registerEvents()
+function MD.OnCrafting(eventCode, craftingType)
+  MD.isDebug = MD.settings.Debug
+  MD.massRefineEnabled = MD.settings.MassRefineEnabled
+  MD.isStation = 0
+  if craftingType == CRAFTING_TYPE_CLOTHIER then
+    MD.isStation = 1
+    MD.isClothing = true
+  elseif craftingType == CRAFTING_TYPE_BLACKSMITHING then
+    MD.isStation = 2
+    MD.isBlacksmithing = true
+  elseif craftingType == CRAFTING_TYPE_WOODWORKING then
+    MD.isStation = 3
+    MD.isWoodworking = true
+  elseif craftingType == CRAFTING_TYPE_ENCHANTING then
+    MD.isStation = 4
+    MD.isEnchanting = true
+  else
+    return
+  end 
+  if MD.isDebug then
+    d('Checking station type')
+    if MD.isClothing then
+      d("MD Clothier")
+    elseif MD.isBlacksmithing then
+      d("MD Blacksmith")
+    elseif MD.isWoodworking then
+      d("MD Woodworker")
+    elseif MD.isEnchanting then
+      d("MD Enchanter")
+    end
+  end
+  KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
+  KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
+  MD.updateStuffofInventory() 
+  MD:PrepareForDeconstruction()
+end
 
-  EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFTING_STATION_INTERACT, function(eventCode, craftSkill, sameStation)
-      if craftSkill == CRAFTING_TYPE_CLOTHIER then
-        MD.isStation = 1
-      elseif craftSkill == CRAFTING_TYPE_BLACKSMITHING then
-        MD.isStation = 2
-      elseif craftSkill == CRAFTING_TYPE_WOODWORKING then
-        MD.isStation = 3
-      elseif craftSkill == CRAFTING_TYPE_ENCHANTING then
-        MD.isStation = 4
-      end 
-      MD:OnCrafting(sameStation)
-    end)
+function MD.OnCraftEnd()
+  MD.isStation = 0
+  MD.isBlacksmithing = false
+  MD.isClothing = false
+  MD.isWoodworking = false
+  MD.isEnchanting = false
+  if MD.isDebug then
+    d("MD station leave")
+  end
+  KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
+  EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
+end
 
-  EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_END_CRAFTING_STATION_INTERACT, function(eventCode) 
-      if MD.isStation > 0 then
-        MD:OnCraftEnd() 
-      end
-    end)
-
+function MD:RegisterEvents()
+  EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFTING_STATION_INTERACT, MD.OnCrafting)
+  EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_END_CRAFTING_STATION_INTERACT, MD.OnCraftEnd)
 end
 
 --
@@ -481,8 +510,8 @@ function MD.Initialize(event, addon)
   if addon ~= MD.name then return end
   SLASH_COMMANDS["/md"] = processSlashCommands
 
-  em:UnregisterForEvent("MassDeconstructorInitialize", EVENT_ADD_ON_LOADED)
-  MD:registerEvents()
+  EVENT_MANAGER:UnregisterForEvent("MassDeconstructorInitialize", EVENT_ADD_ON_LOADED)
+  MD:RegisterEvents()
   -- load our saved variables
   MD.settings = ZO_SavedVars:New("MassDeconstructorSavedVars", 1, nil, MD.defaults)
 
@@ -498,17 +527,25 @@ function MD.Initialize(event, addon)
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL),
       keybind = "MD_DECONSTRUCTOR_DECON_ALL",
       callback = function() MD.startDeconstruction() end,
-      visible = function() return true or MD.isInWorkstationandTab()  end,
+      visible = function() return true end,
     },
     {
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_REFINE_ALL),
       keybind = "MD_DECONSTRUCTOR_REFINE_ALL",
-      callback = function() MD.startRefining() end,
-      visible = function() return true or MD.isInWorkstationandTab()  end,
+      callback = function() MD.StartRefining() end,
+      visible = function() return not MD.isEnchanting end,
     },
     alignment = KEYBIND_STRIP_ALIGN_CENTER,
   }
 
+  MD.isDebug = false
+  MD.isStation = 0
+  MD.totalDeconstruct = 0
+  MD.currentList = {}
+  MD.deconstructQueue = {}
+  MD.refineQueue = {}
+  MD.itemToDeconstruct = nil
+  MD.massRefineEnabled = false
 end
 
 
