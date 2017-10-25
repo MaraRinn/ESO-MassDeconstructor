@@ -283,20 +283,20 @@ end
 
 local function AddCraftingBagItemsToRefineQueue()
   local bagId = BAG_VIRTUAL
-    DebugMessage("Checking crafting bag for refinable items")
-    slotIndex = GetNextVirtualBagSlotId(nil)
-    while slotIndex ~= nil do
-      slotIndex = GetNextVirtualBagSlotId(slotIndex)
-      local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
-      if ShouldRefineItem(bagId, slotIndex, itemLink) then
-        x = {}
-        x.bagId = bagId
-        x.slotIndex = slotIndex
-        x.itemLink = itemLink
-        table.insert(MD.refineQueue, x)
-        DebugMessage("Refine queue length: " .. #MD.refineQueue)
-      end
+  DebugMessage("Checking crafting bag for refinable items")
+  slotIndex = GetNextVirtualBagSlotId(nil)
+  while slotIndex ~= nil do
+    slotIndex = GetNextVirtualBagSlotId(slotIndex)
+    local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
+    if ShouldRefineItem(bagId, slotIndex, itemLink) then
+      x = {}
+      x.bagId = bagId
+      x.slotIndex = slotIndex
+      x.itemLink = itemLink
+      table.insert(MD.refineQueue, x)
+      DebugMessage("Refine queue length: " .. #MD.refineQueue)
     end
+  end
 end
 
 local function BuildRefiningQueue()
@@ -315,7 +315,7 @@ end
 
 local function NeedsNewStack()
   if SMITHING.refinementPanel:IsExtractable() then
-    if StackBigEnoughToRefine then
+    if StackBigEnoughToRefine() then
       -- Current stack is fine
       return false
     end
@@ -336,12 +336,10 @@ local function ProcessRefiningQueue()
     SMITHING:AddItemToCraft(itemToRefine.bagId, itemToRefine.slotIndex)
   end
   if MD.isDebug then
-    DebugMessage('(In debug mode. Check that item being refined.)')
-  else
-    SMITHING.refinementPanel:Extract()
-  end
-  if StackBigEnoughToRefine() then
+    DebugMessage('(In debug mode. Check that a refinable quantity is about to be refined.)')
+  elseif StackBigEnoughToRefine() then
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
+    SMITHING.refinementPanel:Extract()
   else
     DebugMessage('Nothing left to refine')
     CleanupAfterRefining()
@@ -357,7 +355,8 @@ function MD.StartRefining()
     return
   end
   if SMITHING.mode ~= SMITHING_MODE_REFINMENT then
-    SMITHING:SetMode(SMITHING_MODE_REFINEMENT)
+    SMITHING:SetMode(SMITHING_MODE_REFINMENT)
+    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
   end
   BuildRefiningQueue()
   if #MD.refineQueue > 0 then
