@@ -1,5 +1,3 @@
-local wm = GetWindowManager()
-local em = GetEventManager()
 local _
 
 if MD == nil then MD = {} end
@@ -42,7 +40,6 @@ MD.Inventory = {
   enchanter = { },
   woodworker = { },
 }
-MD.refining = {}
 
 local function DebugMessage(message)
   if MD.isDebug then
@@ -56,15 +53,12 @@ local function IsItemProtected(bagId, slotId)
     return true
   end
 
-  --FCO ItemSaver support
-  if FCOIsMarked then
+  if FCOIsMarked and FCOIsMarked(GetItemInstanceId(bagId, slotId), {1,2,3,4,5,6,7,8,10,11,12}) then -- 9 is deconstruct
     --Old FCOIS version < 1.0
-    if FCOIsMarked and FCOIsMarked(GetItemInstanceId(bagId, slotId), {1,2,3,4,5,6,7,8,10,11,12}) then -- 9 is deconstruct
       return true
-    end
-  elseif FCOIS and FCOIS.IsDeconstructionLocked then
+  elseif FCOIS and FCOIS.IsMarked and FCOIS.IsMarked(bagId, slotId, {1,2,3,4,5,6,7,8,10,11,12}, nil)then
     --New for FCOIS version >= 1.0
-    return FCOIS.IsDeconstructionLocked(bagId, slotId)
+    return true
   end
 
   --FilterIt support
@@ -78,11 +72,24 @@ local function IsItemProtected(bagId, slotId)
   return false
 end
 
-function MD:IsOrnate(bagId,slotId)
+local function IsMarkedForBreaking(bagId, slotId)
+  if FCOIS then
+    isMarked, markedArray = FCOIS.IsMarked(bagId, slotId, {9}, nil)
+    return isMarked
+  end
+  return false
+end
+
+local function IsOrnate(bagId,slotId)
   return GetItemTrait(bagId,slotId) == ITEM_TRAIT_TYPE_ARMOR_ORNATE or GetItemTrait(bagId,slotId) == ITEM_TRAIT_TYPE_WEAPON_ORNATE
 end
 
-function MD:isItemBindable(bagId, slotIndex)
+local function isIntricate(bagId, slotId)
+  local trait = GetItemTrait(bagId, slotId)
+  return (trait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE) or (trait == ITEM_TRAIT_TYPE_WEAPON_INTRICATE)
+end
+
+local function isItemBindable(bagId, slotIndex)
   local itemLink = GetItemLink(bagId, slotIndex)
   if itemLink then
     --Bound
@@ -109,154 +116,132 @@ local function isSetPiece(itemLink)
   return hasSet
 end
 
-function MD.addStuffToInventoryForBag(bagId)
-  local GetItemType = GetItemType
-  local GetItemInfo = GetItemInfo
-  local zo_strformat = zo_strformat
-  local GetItemName = GetItemName
-  local bagSize = GetBagSize(bagId)
-  local usableBagSize = GetBagUseableSize(bagId)
-  local bagSlots = GetBagSize(bagId) -1
-  for slotIndex = 0, bagSlots do
-    local itemType = GetItemType(bagId, slotIndex)
-    local _, stack, _, _, _, equipType , _, quality = GetItemInfo(bagId, slotIndex)
-    local name = GetItemName(bagId, slotIndex)
-    local continue_ = true
-    local itemLink = GetItemLink(bagId, slotIndex)
-    local _, CraftingSkillType = LII:GetResearchInfo(bagId, slotIndex)
-    local isProtected = IsItemProtected(bagId, slotIndex)
-    local isOrnated = MD:IsOrnate(bagId, slotIndex)
-    local boundType = MD:isItemBindable(bagId, slotIndex)
-    local bagCount, bankCount, craftCount = GetItemLinkStacks(itemLink)
-    local isSetPc = isSetPiece(itemLink)
-    local iTraitType = GetItemLinkTraitInfo(itemLink)
-    local isIntricate = iTraitType == 9 or iTraitType == 20
-    local isGlyph = LII:IsGlyph(bagId, slotIndex)
-    -- is protected skip
-    if continue_ then 
-      if isProtected then
-        continue_ = false
-      end 
-    end 
+local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
+  local _, CraftingSkillType = LII:GetResearchInfo(bagId, slotIndex)
+  local _, _, _, _, _, _ , _, quality = GetItemInfo(bagId, slotIndex)
+  local itemLink = GetItemLink(bagId, slotIndex)
+  local boundType = isItemBindable(bagId, slotIndex)
+  local isSetPc = isSetPiece(itemLink)
+  local isIntricateItem = isIntricate(bagId, slotIndex)
+  local isOrnateItem = IsOrnate(bagId, slotIndex)
+  local isGlyph = LII:IsGlyph(bagId, slotIndex)
 
-    if continue_ then
-      if CraftingSkillType == CRAFTING_TYPE_INVALID and isGlyph == false then
-        continue_ = false
+  if IsMarkedForBreaking(bagId, slotIndex) then
+    local shouldBe =
+      (MD.isBlacksmithing and CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING) or
+      (MD.isClothing and CraftingSkillType == CRAFTING_TYPE_CLOTHIER) or
+      (MD.isWoodworking and CraftingSkillType == CRAFTING_TYPE_WOODWORKING) or
+      (MD.isEnchanting and isGlyph)
+
+    if shouldBe then
+      DebugMessage("Item is doomed " .. itemLink)
+    end
+    return shouldBe
+  end
+
+  if IsItemProtected(bagId, slotIndex) then
+    DebugMessage("Item is protected " .. itemLink)
+    return false
+  end
+
+  if CraftingSkillType == CRAFTING_TYPE_INVALID and isGlyph == false then
+    return false
+  end
+
+  if boundType == 1 and not MD.settings.DeconstructBound then
+    return false
+  end
+
+  if isOrnateItem and not MD.settings.DeconstructOrnate then
+    return false
+  end
+
+  if isSetPc and not MD.settings.DeconstructSetPiece then
+    return false
+  end
+  
+  if CraftingSkillType == CRAFTING_TYPE_CLOTHIER then
+    if quality > MD.settings.Clothing.maxQuality then
+      return false
+    end
+    if not MD.isClothing then
+      return false
+    end
+  elseif CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING then
+    if quality > MD.settings.Blacksmithing.maxQuality then
+      return false
+    end
+    if not MD.isBlacksmithing then
+      return false
+    end
+  elseif CraftingSkillType == CRAFTING_TYPE_WOODWORKING then
+    if quality > MD.settings.Woodworking.maxQuality then
+      return false
+    end
+    if not MD.isWoodworking then
+      return false
+    end
+  elseif isGlyph then
+    if quality > MD.settings.Enchanting.maxQuality then
+      return false
+    end
+    if not MD.isEnchanting then
+      return false
+    end
+  end
+  DebugMessage("Adding " .. itemLink)
+  return true
+end
+
+local function AddItemsToDeconstructionQueue(bagId)
+    DebugMessage("AddItemsToDeconstructionQueue " .. bagId)
+    local bagSlots = GetBagSize(bagId)
+    for slotIndex = 0, bagSlots do
+      local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
+      if ShouldDeconstructItem(bagId, slotIndex, itemLink) or IsMarkedForBreaking(bagId, slotId) then
+        x = {}
+        x.bagId = bagId
+        x.slotIndex = slotIndex
+        x.itemLink = itemLink
+        table.insert(MD.deconstructQueue, x)
       end
     end
+    DebugMessage("Deconstruct queue length: " .. #MD.deconstructQueue)
+end
 
-    -- check settings and skip if bounded
-    if continue_ then
-      if not MD.settings.DeconstructBound then
-        if boundType == 1 then
-          continue_ = false
-        end
-      end
-    end
+local function BuildDeconstructionQueue()
+  MD.deconstructQueue = {}
 
-    -- check settings and skip ornate
-    if continue_ then 
-      if not MD.settings.DeconstructOrnate then
-        if isOrnated then
-          continue_ = false
-        end
-      end
-    end
-
-    if continue_ then
-      if not MD.settings.DeconstructSetPiece and isSetPc then
-        continue_ = false
-      end
-    end
- 
-    -- check settings maxQuality and skip if greater
-    if continue_ then
-      if CraftingSkillType == CRAFTING_TYPE_CLOTHIER then
-        if quality > MD.settings.Clothing.maxQuality then
-          continue_ = false
-        end
-        if isIntricate and not MD.settings.Clothing.DeconstructIntricate then
-          continue_ = false
-        end
-      elseif CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING then
-        if quality > MD.settings.Blacksmithing.maxQuality then
-          continue_ = false
-        end
-        if isIntricate and not MD.settings.Blacksmithing.DeconstructIntricate then
-          continue_ = false
-        end
-      elseif CraftingSkillType == CRAFTING_TYPE_WOODWORKING then 
-        if quality > MD.settings.Woodworking.maxQuality then
-          continue_ = false
-        end
-        if isIntricate and not MD.settings.Woodworking.DeconstructIntricate then
-          continue_ = false
-        end
-      elseif isGlyph then
-        if quality > MD.settings.Enchanting.maxQuality then
-          continue_ = false
-        end
-        if isIntricate and not MD.settings.Enchanting.DeconstructIntricate then
-          continue_ = false
-        end
-      end
-    end
-
-    if continue_ then
-      name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
-      if MD.isDebug then
-        d(string.format("%s - %s" , itemLink, iTraitType))
-        --d(isSetPc)
-        --.."-"..stack.."-"..bagCount.."-"..bankCount)
-        --  d(quality)
-        --d(boundType)
-        --d("|caaaaaa-----------|r")
-      end
-      n = {}
-      n.bagId = bagId
-      n.slotIndex = slotIndex
-      n.stack = bagCount + bankCount
-
-      if (CraftingSkillType == CRAFTING_TYPE_CLOTHIER) then
-        if MD.Inventory.clothier[itemLink] == nil then
-          MD.Inventory.clothier[itemLink] = n
-        end
-      elseif (CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING) then
-        if MD.Inventory.blacksmith[itemLink] == nil then
-          MD.Inventory.blacksmith[itemLink] = n
-        end
-      elseif (CraftingSkillType == CRAFTING_TYPE_WOODWORKING) then
-        if MD.Inventory.woodworker[itemLink] == nil then
-          MD.Inventory.woodworker[itemLink] = n
-        end
-      elseif (isGlyph) then
-        if MD.Inventory.enchanter[itemLink] == nil then
-          MD.Inventory.enchanter[itemLink] = n
-        end
-      end
-      --   end
-    end
+  AddItemsToDeconstructionQueue(BAG_BACKPACK)
+  if MD.settings.BankMode then 
+    -- subscribers get extra bank space
+    if IsESOPlusSubscriber() then AddItemsToDeconstructionQueue(BAG_SUBSCRIBER_BANK) end
+    -- regular bank
+    AddItemsToDeconstructionQueue(BAG_BANK)
   end
 end
 
-function MD.PrepareForDeconstruction() 
-  MD.setCurrentListForWorkstation()
-  for itemLink, _ in pairs(MD.currentList) do
-    d("|cff0000Deconstructable:|r "..itemLink)
+function MD.ContinueWork()
+  DebugMessage("Deconstruct queue count: "..#MD.deconstructQueue)
+  if SMITHING.refinementPanel.extractionSlot:HasItem() then
+    DebugMessage("Extracting item already in deconstruction slot")
+    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, MD.ContinueWork)
+    if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
+  elseif #MD.deconstructQueue > 0 then
+    itemToDeconstruct = table.remove(MD.deconstructQueue)
+    DebugMessage("Deconstructing: " .. itemToDeconstruct.itemLink)
+    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, MD.ContinueWork)
+    if MD.isEnchanting then
+      ExtractEnchantingItem(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
+    else
+      SMITHING:AddItemToCraft(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
+      if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
+    end
+  else
+    DebugMessage("Deconstruction done.")
+    EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED) 
   end
 end
-
-function MD.setCurrentListForWorkstation()
-  if MD.isClothing then
-    MD.currentList = MD.Inventory.clothier
-  elseif MD.isBlacksmithing then
-    MD.currentList = MD.Inventory.blacksmith
-  elseif MD.isWoodworking then
-    MD.currentList = MD.Inventory.woodworker
-  elseif MD.isEnchanting then
-    MD.currentList = MD.Inventory.enchanter
-  end
-end  
 
 function MD.startDeconstruction() 
   if MD.isEnchanting then
@@ -268,59 +253,13 @@ function MD.startDeconstruction()
       SMITHING:SetMode(SMITHING_MODE_DECONSTRUCTION)
     end
   end
-
-  -- : refrest list for getting count
-  MD.updateStuffofInventory()
-  MD.setCurrentListForWorkstation()
+  
+  BuildDeconstructionQueue()
 
   -- : reset counter
-  MD.totalDeconstruct = 0
-  for itemLink, tablosu in pairs( MD.currentList ) do
-    MD.totalDeconstruct = MD.totalDeconstruct + tablosu.stack
-  end
-  d("Destructable item count: |cff0000"..(MD.totalDeconstruct).."|r")
-  MD.deconstructQueue = {}
-  for itemLink, tablosu in pairs( MD.currentList ) do
-    table.insert(MD.deconstructQueue, tablosu)
-    DebugMessage("bagId:"..tablosu.bagId.."  slot:".. tablosu.slotIndex)
-  end
   if #MD.deconstructQueue > 0 then
     MD.ContinueWork()
   end
-end
-
-function MD.ContinueWork()
-  EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
-  itemToDeconstruct = table.remove(MD.deconstructQueue)
-  if MD.isEnchanting then
-    ExtractEnchantingItem(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
-  else
-    SMITHING:AddItemToCraft(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
-    if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
-  end
-  if #MD.deconstructQueue > 0 or SMITHING.refinementPanel.extractionSlot:HasItem() then
-    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, MD.ContinueWork)
-  end
-  DebugMessage("Deconstruct queue count: "..#MD.deconstructQueue)
-end
-
-function MD.updateStuffofInventory()
-  MD.Inventory = {
-    items = { },
-    clothier = { },
-    blacksmith = { },
-    enchanter = { },
-    woodworker = { },
-  }
-
-  MD.addStuffToInventoryForBag(BAG_BACKPACK)
-  if MD.settings.BankMode then 
-    -- subscribers get extra bank space
-    if IsESOPlusSubscriber() then MD.addStuffToInventoryForBag(BAG_SUBSCRIBER_BANK) end
-    -- regular bank
-    MD.addStuffToInventoryForBag(BAG_BANK)
-  end
-
 end
 
 local function ShouldRefineItem(bagId, slotIndex, itemLink)
@@ -344,20 +283,20 @@ end
 
 local function AddCraftingBagItemsToRefineQueue()
   local bagId = BAG_VIRTUAL
-    DebugMessage("Checking crafting bag for refinable items")
-    slotIndex = GetNextVirtualBagSlotId(nil)
-    while slotIndex ~= nil do
-      slotIndex = GetNextVirtualBagSlotId(slotIndex)
-      local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
-      if ShouldRefineItem(bagId, slotIndex, itemLink) then
-        x = {}
-        x.bagId = bagId
-        x.slotIndex = slotIndex
-        x.itemLink = itemLink
-        table.insert(MD.refineQueue, x)
-        DebugMessage("Refine queue length: " .. #MD.refineQueue)
-      end
+  DebugMessage("Checking crafting bag for refinable items")
+  slotIndex = GetNextVirtualBagSlotId(nil)
+  while slotIndex ~= nil do
+    slotIndex = GetNextVirtualBagSlotId(slotIndex)
+    local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
+    if ShouldRefineItem(bagId, slotIndex, itemLink) then
+      x = {}
+      x.bagId = bagId
+      x.slotIndex = slotIndex
+      x.itemLink = itemLink
+      table.insert(MD.refineQueue, x)
+      DebugMessage("Refine queue length: " .. #MD.refineQueue)
     end
+  end
 end
 
 local function BuildRefiningQueue()
@@ -376,7 +315,7 @@ end
 
 local function NeedsNewStack()
   if SMITHING.refinementPanel:IsExtractable() then
-    if StackBigEnoughToRefine then
+    if StackBigEnoughToRefine() then
       -- Current stack is fine
       return false
     end
@@ -397,12 +336,10 @@ local function ProcessRefiningQueue()
     SMITHING:AddItemToCraft(itemToRefine.bagId, itemToRefine.slotIndex)
   end
   if MD.isDebug then
-    DebugMessage('(In debug mode. Check that item being refined.)')
-  else
-    SMITHING.refinementPanel:Extract()
-  end
-  if StackBigEnoughToRefine() then
+    DebugMessage('(In debug mode. Check that a refinable quantity is about to be refined.)')
+  elseif StackBigEnoughToRefine() then
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
+    SMITHING.refinementPanel:Extract()
   else
     DebugMessage('Nothing left to refine')
     CleanupAfterRefining()
@@ -418,7 +355,8 @@ function MD.StartRefining()
     return
   end
   if SMITHING.mode ~= SMITHING_MODE_REFINMENT then
-    SMITHING:SetMode(SMITHING_MODE_REFINEMENT)
+    SMITHING:SetMode(SMITHING_MODE_REFINMENT)
+    EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
   end
   BuildRefiningQueue()
   if #MD.refineQueue > 0 then
@@ -480,8 +418,6 @@ function MD.OnCrafting(eventCode, craftingType)
   end
   KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
   KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
-  MD.updateStuffofInventory() 
-  MD:PrepareForDeconstruction()
 end
 
 function MD.OnCraftEnd()
@@ -550,4 +486,4 @@ end
 
 
 -- register our event handler function to be called to do initialization
-em:RegisterForEvent(MD.name, EVENT_ADD_ON_LOADED, function(...) MD.Initialize(...) end)
+EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_ADD_ON_LOADED, function(...) MD.Initialize(...) end)
