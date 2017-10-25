@@ -1,6 +1,6 @@
 ## Title: Mass Deconstructor
 ## Description: This addon mass deconstructs all items determined by your configured conditions
-## APIVersion: 100020
+## APIVersion: 100021
 ## Author: ahmetertem
 ## Version: 2.0
 ## DependsOn:
