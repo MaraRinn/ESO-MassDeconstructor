@@ -13,7 +13,6 @@ MD.defaults = {
   DeconstructBound = false,
   DeconstructSetPiece = false,
   Debug = false,
-  MassRefineEnabled = false,
   BankMode = false,
   Clothing = {
     maxQuality = 4,
@@ -243,7 +242,7 @@ function MD.ContinueWork()
   end
 end
 
-function MD.startDeconstruction() 
+function MD.StartDeconstruction() 
   if MD.isEnchanting then
     if ENCHANTING.enchantingMode ~= ENCHANTING_MODE_EXTRACTION then
       ENCHANTING:SetEnchantingMode(ENCHANTING_MODE_EXTRACTION)
@@ -347,10 +346,6 @@ local function ProcessRefiningQueue()
 end
 
 function MD.StartRefining()
-  if not MD.massRefineEnabled then
-    d('Mass Refine is a beta feature. Please enable it in settings at your own risk.')
-    return false
-  end
   if MD.isEnchanting then
     return
   end
@@ -387,7 +382,6 @@ end
 
 function MD.OnCrafting(eventCode, craftingType)
   MD.isDebug = MD.settings.Debug
-  MD.massRefineEnabled = MD.settings.MassRefineEnabled
   MD.isStation = 0
   if craftingType == CRAFTING_TYPE_CLOTHIER then
     MD.isStation = 1
@@ -462,7 +456,7 @@ function MD.Initialize(event, addon)
     { -- I think you can have more than one button in your group if you add more of these sub-groups
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL),
       keybind = "MD_DECONSTRUCTOR_DECON_ALL",
-      callback = function() MD.startDeconstruction() end,
+      callback = function() MD.StartDeconstruction() end,
       visible = function() return true end,
     },
     {
@@ -481,7 +475,6 @@ function MD.Initialize(event, addon)
   MD.deconstructQueue = {}
   MD.refineQueue = {}
   MD.itemToDeconstruct = nil
-  MD.massRefineEnabled = false
 end
 
 

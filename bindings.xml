@@ -2,7 +2,10 @@
   <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
     <Category name="|cFF6A00Mass Deconstructor|r">
       <Action name="MD_DECONSTRUCTOR_DECON_ALL">
-        <Down>MD.startDeconstruction()</Down>
+        <Down>MD.StartDeconstruction()</Down>
+      </Action>
+      <Action name="MD_DECONSTRUCTOR_REFINE_ALL">
+        <Down>MD.StartRefining()</Down>
       </Action>
     </Category>
   </Layer>
