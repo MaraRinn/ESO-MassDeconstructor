@@ -52,6 +52,7 @@ local function IsItemProtected(bagId, slotId)
     return true
   end
 
+  -- If an item has any FCOIS marks apart from "deconstruct" then it's proteected
   if FCOIsMarked and FCOIsMarked(GetItemInstanceId(bagId, slotId), {1,2,3,4,5,6,7,8,10,11,12}) then -- 9 is deconstruct
     --Old FCOIS version < 1.0
       return true
@@ -85,7 +86,8 @@ end
 
 local function isIntricate(bagId, slotId)
   local trait = GetItemTrait(bagId, slotId)
-  return (trait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE) or (trait == ITEM_TRAIT_TYPE_WEAPON_INTRICATE)
+  hasIntricateTrait = (trait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE) or (trait == ITEM_TRAIT_TYPE_WEAPON_INTRICATE)
+  return hasIntricateTrait
 end
 
 local function isItemBindable(bagId, slotIndex)
@@ -125,22 +127,23 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   local isOrnateItem = IsOrnate(bagId, slotIndex)
   local isGlyph = LII:IsGlyph(bagId, slotIndex)
 
-  if IsMarkedForBreaking(bagId, slotIndex) then
-    local shouldBe =
-      (MD.isBlacksmithing and CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING) or
-      (MD.isClothing and CraftingSkillType == CRAFTING_TYPE_CLOTHIER) or
-      (MD.isWoodworking and CraftingSkillType == CRAFTING_TYPE_WOODWORKING) or
-      (MD.isEnchanting and isGlyph)
-
-    if shouldBe then
-      DebugMessage("Item is doomed " .. itemLink)
-    end
-    return shouldBe
+  -- Sanity check: don't even consider items that don't belong in the queue
+  if (MD.isBlacksmithing and CraftingSkillType ~= CRAFTING_TYPE_BLACKSMITHING) or
+      (MD.isClothing and CraftingSkillType ~= CRAFTING_TYPE_CLOTHIER) or
+      (MD.isWoodworking and CraftingSkillType ~= CRAFTING_TYPE_WOODWORKING) or
+      (MD.isEnchanting and not isGlyph) then
+    return false
   end
 
   if IsItemProtected(bagId, slotIndex) then
     DebugMessage("Item is protected " .. itemLink)
     return false
+  end
+
+  -- Marking an item for deconstruction using FCOIS voids all warranties
+  if IsMarkedForBreaking(bagId, slotIndex) then
+    DebugMessage("Item is doomed " .. itemLink)
+    return true
   end
 
   if CraftingSkillType == CRAFTING_TYPE_INVALID and isGlyph == false then
@@ -160,24 +163,36 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   end
   
   if CraftingSkillType == CRAFTING_TYPE_CLOTHIER then
-    if quality > MD.settings.Clothing.maxQuality then
-      return false
-    end
     if not MD.isClothing then
       return false
     end
-  elseif CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING then
-    if quality > MD.settings.Blacksmithing.maxQuality then
+    if quality > MD.settings.Clothing.maxQuality then
       return false
     end
+    if isIntricateItem and not MD.settings.Clothing.DeconstructIntricate then
+      DebugMessage('Skipping intrictate clothing item: ' .. itemLink)
+      return false
+    end
+  elseif CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING then
     if not MD.isBlacksmithing then
       return false
     end
+    if quality > MD.settings.Blacksmithing.maxQuality then
+      return false
+    end
+    if isIntricateItem and not MD.settings.Blacksmithing.DeconstructIntricate then
+      DebugMessage('Skipping intrictate blacksmithing item: ' .. itemLink)
+      return false
+    end
   elseif CraftingSkillType == CRAFTING_TYPE_WOODWORKING then
+    if not MD.isWoodworking then
+      return false
+    end
     if quality > MD.settings.Woodworking.maxQuality then
       return false
     end
-    if not MD.isWoodworking then
+    if isIntricateItem and not MD.settings.Woodworking.DeconstructIntricate then
+      DebugMessage('Skipping intrictate woodworking item: ' .. itemLink)
       return false
     end
   elseif isGlyph then
