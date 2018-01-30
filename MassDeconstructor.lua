@@ -69,6 +69,13 @@ local function IsItemProtected(bagId, slotId)
     end
   end
 
+  if IsItemPlayerLocked(bagId, slotId) then
+    DebugMessage(' - item is player locked')
+    return true
+  else
+    DebugMessage(' - item is not player locked')
+  end
+
   return false
 end
 
@@ -119,7 +126,7 @@ end
 
 local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   local _, CraftingSkillType = LII:GetResearchInfo(bagId, slotIndex)
-  local _, _, _, _, _, _ , _, quality = GetItemInfo(bagId, slotIndex)
+  local sIcon, iStack, iSellPrice, bMeetsUsageRequirement, isLocked, iEquipType , iItemStyle, quality = GetItemInfo(bagId, slotIndex)
   local itemLink = GetItemLink(bagId, slotIndex)
   local boundType = isItemBindable(bagId, slotIndex)
   local isSetPc = isSetPiece(itemLink)
@@ -237,7 +244,7 @@ end
 
 function MD.ContinueWork()
   DebugMessage("Deconstruct queue count: "..#MD.deconstructQueue)
-  if SMITHING.refinementPanel.extractionSlot:HasItem() then
+  if SMITHING.deconstructionPanel.extractionSlot:HasItem() then
     DebugMessage("Extracting item already in deconstruction slot")
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, MD.ContinueWork)
     if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
