@@ -14,6 +14,7 @@ MD.defaults = {
   DeconstructSetPiece = false,
   Debug = false,
   BankMode = false,
+  Verbose = false,
   Clothing = {
     maxQuality = 4,
     DeconstructIntricate = false,
@@ -230,6 +231,14 @@ local function AddItemsToDeconstructionQueue(bagId)
     DebugMessage("Deconstruct queue length: " .. #MD.deconstructQueue)
 end
 
+local function ListItemsInQueue()
+  itemString = #MD.deconstructQueue == 1 and 'item' or 'items'
+  d('Mass Deconstruct will destroy ' .. #MD.deconstructQueue .. ' ' .. itemString ..':')
+  for index, thing in ipairs(MD.deconstructQueue) do
+    d(' - ' .. thing.itemLink)
+  end
+end
+
 local function BuildDeconstructionQueue()
   MD.deconstructQueue = {}
 
@@ -390,9 +399,7 @@ local function processSlashCommands(option)
     end
   end
 
-  if options[1] == "mk" then
-    MD.updateStuffofInventory()
-  elseif options[1] == "test" then
+  if options[1] == "test" then
     MD.test()
   end
 
@@ -419,7 +426,8 @@ function MD.OnCrafting(eventCode, craftingType)
     MD.isEnchanting = true
   else
     return
-  end 
+  end
+
   if MD.isDebug then
     d('Checking station type')
     if MD.isClothing then
@@ -432,6 +440,12 @@ function MD.OnCrafting(eventCode, craftingType)
       d("MD Enchanter")
     end
   end
+
+  if MD.settings.Verbose then
+    BuildDeconstructionQueue()
+    ListItemsInQueue()
+  end
+
   KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
   KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
 end
@@ -458,7 +472,6 @@ end
 -- This function that will initialize our addon with ESO
 --
 function MD.Initialize(event, addon)
-  -- filter for just HWS addon event
   if addon ~= MD.name then return end
   SLASH_COMMANDS["/md"] = processSlashCommands
 
