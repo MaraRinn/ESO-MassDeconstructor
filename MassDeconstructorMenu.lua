@@ -45,6 +45,12 @@ function MD.MakeMenu()
       setFunc = function(value) set.DeconstructOrnate = value end,
     },
     {
+    	type = "checkbox",
+    	name = "List items before starting work",
+    	getFunc = function() return set.Verbose end,
+    	setFunc = function(value) set.Verbose = value end,
+    },
+    {
       type = "checkbox",
       name = "Debug",
       getFunc = function() return set.Debug end,
