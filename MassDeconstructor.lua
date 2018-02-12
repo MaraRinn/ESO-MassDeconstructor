@@ -4,7 +4,7 @@ if MD == nil then MD = {} end
 local LII = LibStub:GetLibrary("LibItemInfo-1.0")
 
 MD.name = "MassDeconstructor"
-MD.version = "2.0"
+MD.version = "2.4"
 
 MD.settings = {}
 
@@ -488,7 +488,7 @@ function MD.Initialize(event, addon)
   MD.MakeMenu()
   MD.KeybindStripDescriptor =
   {
-    { -- I think you can have more than one button in your group if you add more of these sub-groups
+    {
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL),
       keybind = "MD_DECONSTRUCTOR_DECON_ALL",
       callback = function() MD.StartDeconstruction() end,
