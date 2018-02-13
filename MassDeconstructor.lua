@@ -12,6 +12,7 @@ MD.defaults = {
   DeconstructOrnate = false,
   DeconstructBound = false,
   DeconstructSetPiece = false,
+  DeconstructCrafted = false,
   Debug = false,
   BankMode = false,
   Verbose = false,
@@ -167,6 +168,10 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   end
 
   if isSetPc and not MD.settings.DeconstructSetPiece then
+    return false
+  end
+
+  if IsItemLinkCrafted(itemLink) and not MD.settings.DeconstructCrafted then
     return false
   end
   
