@@ -12,6 +12,7 @@ MD.defaults = {
   DeconstructOrnate = false,
   DeconstructBound = false,
   DeconstructSetPiece = false,
+  DeconstructCrafted = false,
   Debug = false,
   BankMode = false,
   Verbose = false,
@@ -169,6 +170,10 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   if isSetPc and not MD.settings.DeconstructSetPiece then
     return false
   end
+
+  if IsItemLinkCrafted(itemLink) and not MD.settings.DeconstructCrafted then
+    return false
+  end
   
   if CraftingSkillType == CRAFTING_TYPE_CLOTHIER then
     if not MD.isClothing then
@@ -233,10 +238,11 @@ end
 
 local function ListItemsInQueue()
   itemString = #MD.deconstructQueue == 1 and 'item' or 'items'
-  d('Mass Deconstruct will destroy ' .. #MD.deconstructQueue .. ' ' .. itemString ..':')
+  d('Mass Deconstruct will destroy:')
   for index, thing in ipairs(MD.deconstructQueue) do
     d(' - ' .. thing.itemLink)
   end
+  d(#MD.deconstructQueue .. ' ' .. itemString)
 end
 
 local function BuildDeconstructionQueue()

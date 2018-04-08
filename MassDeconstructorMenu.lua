@@ -46,6 +46,12 @@ function MD.MakeMenu()
     },
     {
     	type = "checkbox",
+    	name = "Deconstruct crafted items",
+    	getFunc = function() return set.DeconstructCrafted end,
+    	setFunc = function(value) set.DeconstructCrafted = value end,
+    },
+    {
+    	type = "checkbox",
     	name = "List items before starting work",
     	getFunc = function() return set.Verbose end,
     	setFunc = function(value) set.Verbose = value end,
