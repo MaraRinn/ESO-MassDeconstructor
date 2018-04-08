@@ -238,10 +238,11 @@ end
 
 local function ListItemsInQueue()
   itemString = #MD.deconstructQueue == 1 and 'item' or 'items'
-  d('Mass Deconstruct will destroy ' .. #MD.deconstructQueue .. ' ' .. itemString ..':')
+  d('Mass Deconstruct will destroy:')
   for index, thing in ipairs(MD.deconstructQueue) do
     d(' - ' .. thing.itemLink)
   end
+  d(#MD.deconstructQueue .. ' ' .. itemString)
 end
 
 local function BuildDeconstructionQueue()
