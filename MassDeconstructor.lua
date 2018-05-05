@@ -32,6 +32,10 @@ MD.defaults = {
     maxQuality = 4,
     DeconstructIntricate = false,
   },
+  JewelryCrafting = {
+    maxQuality = 4,
+    DesconstructIntricate = false,
+  },
 }
 
 MD.Inventory = {
@@ -137,41 +141,56 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   local isGlyph = LII:IsGlyph(bagId, slotIndex)
 
   -- Sanity check: don't even consider items that don't belong in the queue
-  if (MD.isBlacksmithing and CraftingSkillType ~= CRAFTING_TYPE_BLACKSMITHING) or
+  if  (MD.isBlacksmithing and CraftingSkillType ~= CRAFTING_TYPE_BLACKSMITHING) or
       (MD.isClothing and CraftingSkillType ~= CRAFTING_TYPE_CLOTHIER) or
       (MD.isWoodworking and CraftingSkillType ~= CRAFTING_TYPE_WOODWORKING) or
+      (MD.isJewelryCrafting and CraftingSkillType ~= CRAFTING_TYPE_JEWELRYCRAFTING) or
       (MD.isEnchanting and not isGlyph) then
     return false
   end
 
+  DebugMessage(itemLink .. " -- Crafting Skill Type: " .. CraftingSkillType .. " Equip type: " .. iEquipType .. "  " .. EQUIP_TYPE_NECK)
+
   if IsItemProtected(bagId, slotIndex) then
-    DebugMessage("Item is protected " .. itemLink)
+    DebugMessage(" - Item is protected")
+    return false
+  end
+  
+  if CanItemBeSmithingExtractedOrRefined(bagId, slotIndex, CraftingSkillType) then
+    DebugMessage(" - can be deconstructed")
+  else
+    DebugMessage(" - can NOT be deconstructed")
     return false
   end
 
   -- Marking an item for deconstruction using FCOIS voids all warranties
   if IsMarkedForBreaking(bagId, slotIndex) then
-    DebugMessage("Item is doomed " .. itemLink)
+    DebugMessage(" - Item is doomed")
     return true
   end
 
   if CraftingSkillType == CRAFTING_TYPE_INVALID and isGlyph == false then
+    DebugMessage(" - Invalid crafting type")
     return false
   end
 
   if boundType == 1 and not MD.settings.DeconstructBound then
+    DebugMessage(" - item is bound")
     return false
   end
 
   if isOrnateItem and not MD.settings.DeconstructOrnate then
+    DebugMessage(" - item is ornate")
     return false
   end
 
   if isSetPc and not MD.settings.DeconstructSetPiece then
+    DebugMessage(" - item is part of a set")
     return false
   end
 
   if IsItemLinkCrafted(itemLink) and not MD.settings.DeconstructCrafted then
+    DebugMessage(" - item is crafted")
     return false
   end
   
@@ -206,6 +225,17 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
     end
     if isIntricateItem and not MD.settings.Woodworking.DeconstructIntricate then
       DebugMessage('Skipping intrictate woodworking item: ' .. itemLink)
+      return false
+    end
+  elseif CraftingSkillType == CRAFTING_TYPE_JEWELRYCRAFTING then
+    if not MD.isJewelryCrafting then
+      return false
+    end
+    if quality > MD.settings.JewelryCrafting.maxQuality then
+      return false
+    end
+    if isIntricateItem and not MD.settings.JewelryCrafting.DeconstructIntricate then
+      DebugMessage('Skipping intricate jewellery item: ' .. itemLink)
       return false
     end
   elseif isGlyph then
@@ -396,7 +426,7 @@ function MD.StartRefining()
   end
 end
 
-local function processSlashCommands(option)	
+local function processSlashCommands(option)
   local options = {}
   local searchResult = { string.match(option,"^(%S*)%s*(.-)$") }
   for i,v in pairs(searchResult) do
@@ -417,21 +447,16 @@ end
 
 function MD.OnCrafting(eventCode, craftingType)
   MD.isDebug = MD.settings.Debug
-  MD.isStation = 0
   if craftingType == CRAFTING_TYPE_CLOTHIER then
-    MD.isStation = 1
     MD.isClothing = true
   elseif craftingType == CRAFTING_TYPE_BLACKSMITHING then
-    MD.isStation = 2
     MD.isBlacksmithing = true
   elseif craftingType == CRAFTING_TYPE_WOODWORKING then
-    MD.isStation = 3
     MD.isWoodworking = true
   elseif craftingType == CRAFTING_TYPE_ENCHANTING then
-    MD.isStation = 4
     MD.isEnchanting = true
-  else
-    return
+  elseif craftingType == CRAFTING_TYPE_JEWELRYCRAFTING then
+    MD.isJewelryCrafting = true
   end
 
   if MD.isDebug then
@@ -444,6 +469,11 @@ function MD.OnCrafting(eventCode, craftingType)
       d("MD Woodworker")
     elseif MD.isEnchanting then
       d("MD Enchanter")
+   elseif MD.isJewelryCrafting then
+      d("MD Jewelry Crafting")
+    else
+      d("MD unknown: " .. craftingType)
+      return
     end
   end
 
@@ -457,11 +487,11 @@ function MD.OnCrafting(eventCode, craftingType)
 end
 
 function MD.OnCraftEnd()
-  MD.isStation = 0
   MD.isBlacksmithing = false
   MD.isClothing = false
   MD.isWoodworking = false
   MD.isEnchanting = false
+  MD.isJewelryCrafting = false
   if MD.isDebug then
     d("MD station leave")
   end
@@ -510,7 +540,6 @@ function MD.Initialize(event, addon)
   }
 
   MD.isDebug = false
-  MD.isStation = 0
   MD.totalDeconstruct = 0
   MD.currentList = {}
   MD.deconstructQueue = {}
