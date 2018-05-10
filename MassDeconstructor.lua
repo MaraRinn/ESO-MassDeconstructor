@@ -329,7 +329,7 @@ function MD.StartDeconstruction()
 end
 
 local function ShouldRefineItem(bagId, slotIndex, itemLink)
-  itemType = GetItemLinkItemType(itemLink)
+  local itemType = GetItemLinkItemType(itemLink)
   if (
       itemType == ITEMTYPE_RAW_MATERIAL
       or (MD.isBlacksmithing and itemType == ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)
