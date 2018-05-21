@@ -69,7 +69,7 @@ function MD.MakeMenu()
         {
           type = "slider",
           name = "Maximum item quality to deconstruct",
-          tooltip = "Maximum quality below which items will be destroyed (1 = white,5=legendary)",
+          tooltip = "Maximum quality at which items will be destroyed (1 = white, 5 = legendary)",
           min = 1, 
           max = 5, 
           getFunc = function() return set.Clothing.maxQuality end,
@@ -90,7 +90,7 @@ function MD.MakeMenu()
         {
           type = "slider",
           name = "Maximum item quality to deconstruct",
-          tooltip = "Maximum quality below which items will be destroyed (1 = white,5=legendary)",
+          tooltip = "Maximum quality at which items will be destroyed (1 = white, 5 = legendary)",
           min = 1, 
           max = 5, 
           getFunc = function() return set.Blacksmithing.maxQuality end,
@@ -111,7 +111,7 @@ function MD.MakeMenu()
         {
           type = "slider",
           name = "Maximum item quality to deconstruct",
-          tooltip = "Maximum quality below which items will be destroyed (1 = white,5=legendary)",
+          tooltip = "Maximum quality at which items will be destroyed (1 = white, 5 = legendary)",
           min = 1, 
           max = 5, 
           getFunc = function() return set.Woodworking.maxQuality end,
@@ -132,7 +132,7 @@ function MD.MakeMenu()
         {
           type = "slider",
           name = "Maximum item quality to deconstruct",
-          tooltip = "Maximum quality below which items will be destroyed (1 = white,5=legendary)",
+          tooltip = "Maximum quality at which items will be destroyed (1 = white,5  = legendary)",
           min = 1, 
           max = 5, 
           getFunc = function() return set.Enchanting.maxQuality end,
@@ -143,6 +143,27 @@ function MD.MakeMenu()
           name = "Deconstruct intricate items",
           getFunc = function() return set.Enchanting.DeconstructIntricate end,
           setFunc = function(value) set.Enchanting.DeconstructIntricate = value end,
+        },
+      },
+    },
+    {
+      type = "submenu",
+      name = "Jewelrycrafting Options",
+      controls = {
+        {
+          type = "slider",
+          name = "Maximum item quality to deconstruct",
+          tooltip = "Maximum quality at which items will be destroyed (1 = white, 5 = legendary)",
+          min = 1,
+          max = 5,
+          getFunc = function() return set.JewelryCrafting.maxQuality end,
+          setFunc = function(value) set.JewelryCrafting.maxQuality = value end,
+        },
+        {
+          type = "checkbox",
+          name = "Deconstruct intricate items",
+          getFunc = function() return set.JewelryCrafting.DeconstructIntricate end,
+            setFunc = function(value) set.JewelryCrafting.DeconstructIntricate = value end,
         },
       },
     },

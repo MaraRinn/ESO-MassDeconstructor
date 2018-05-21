@@ -7,7 +7,11 @@ if not lii then return end	--the same or newer version of this lib is already lo
 
 local tEquipTypes = {
 	[ITEMTYPE_ARMOR] = {
-		--[ARMORTYPE_NONE] 	= {}, -- jewelry is excluded --
+		[ARMORTYPE_NONE] 	= {
+			["CRAFTINGSKILLTYPE"] 	= CRAFTING_TYPE_JEWELRYCRAFTING,
+			[EQUIP_TYPE_RING]   = 1,
+			[EQUIP_TYPE_NECK]   = 2,
+		},
 		[ARMORTYPE_LIGHT] 	= {
 			["CRAFTINGSKILLTYPE"] 	= CRAFTING_TYPE_CLOTHIER,
 			[EQUIP_TYPE_CHEST]		= 1,
@@ -94,10 +98,17 @@ local tIsTraitResearchable = {
 	[ITEM_TRAIT_TYPE_WEAPON_WEIGHTED]	 	= true,
 	[ITEM_TRAIT_TYPE_WEAPON_NIRNHONED] 		= true,
 	
-	[ITEM_TRAIT_TYPE_JEWELRY_ARCANE] 		= false,
-	[ITEM_TRAIT_TYPE_JEWELRY_HEALTHY]	 	= false,
-	[ITEM_TRAIT_TYPE_JEWELRY_ORNATE] 		= false,
-	[ITEM_TRAIT_TYPE_JEWELRY_ROBUST] 		= false,
+	[ITEM_TRAIT_TYPE_JEWELRY_ARCANE]			= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY]	= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_HARMONY]		= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_HEALTHY]		= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_INFUSED]		= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_INTRICATE]		= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_ORNATE]			= false,
+	[ITEM_TRAIT_TYPE_JEWELRY_PROTECTIVE]	= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_ROBUST]			= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_SWIFT]			= true,
+	[ITEM_TRAIT_TYPE_JEWELRY_TRIUNE]			= true,
 
 	[ITEM_TRAIT_TYPE_NONE] 					= false,
 }
@@ -180,12 +191,15 @@ end
 -- Returns: True/False if the item is jewelry
 function lii:IsJewelry(_BagIdOrLink, _iSlotId)
 	local lLink = self:GetItemLink(_BagIdOrLink, _iSlotId)
+	local sIcon, iStack, iSellPrice, bMeetsUsageRequirement, isLocked, iEquipType , iItemStyle, quality = GetItemInfo(bagId, slotIndex)
 	local iItemType = GetItemLinkItemType(lLink)
 	
 	if iItemType == ITEMTYPE_ARMOR then
 		local iArmorType = GetItemLinkArmorType(lLink)
 		if iArmorType == ARMORTYPE_NONE then
-			return true
+			if iEquipType == EQUIP_TYPE_RING or iEquipType == EQUIP_TYPE_NECK then
+				return true
+			end
 		end
 	end
 	return false
