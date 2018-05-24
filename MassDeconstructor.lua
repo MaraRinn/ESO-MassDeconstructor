@@ -149,14 +149,14 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
     return false
   end
 
-  DebugMessage(itemLink .. " -- Crafting Skill Type: " .. CraftingSkillType .. " Equip type: " .. iEquipType .. "  " .. EQUIP_TYPE_NECK)
+  DebugMessage(itemLink .. " -- Crafting Skill Type: " .. CraftingSkillType .. " Equip type: " .. iEquipType)
 
   if IsItemProtected(bagId, slotIndex) then
     DebugMessage(" - Item is protected")
     return false
   end
   
-  if CanItemBeSmithingExtractedOrRefined(bagId, slotIndex, CraftingSkillType) then
+  if CanItemBeSmithingExtractedOrRefined(bagId, slotIndex, CraftingSkillType) or isGlyph then
     DebugMessage(" - can be deconstructed")
   else
     DebugMessage(" - can NOT be deconstructed")
@@ -169,7 +169,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
     return true
   end
 
-  if CraftingSkillType == CRAFTING_TYPE_INVALID and isGlyph == false then
+  if CraftingSkillType == CRAFTING_TYPE_INVALID and not isGlyph then
     DebugMessage(" - Invalid crafting type")
     return false
   end
