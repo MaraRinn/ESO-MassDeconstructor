@@ -4,7 +4,7 @@ if MD == nil then MD = {} end
 local LII = LibStub:GetLibrary("LibItemInfo-1.0")
 
 MD.name = "MassDeconstructor"
-MD.version = "3.0"
+MD.version = "3.3"
 
 MD.settings = {}
 
@@ -86,7 +86,7 @@ local function IsItemProtected(bagId, slotId)
 end
 
 local function IsMarkedForBreaking(bagId, slotId)
-  if FCOIS then
+  if FCOIS and FCOIS.IsMarked then
     isMarked, markedArray = FCOIS.IsMarked(bagId, slotId, {9}, nil)
     return isMarked
   end
@@ -94,12 +94,13 @@ local function IsMarkedForBreaking(bagId, slotId)
 end
 
 local function IsOrnate(bagId,slotId)
-  return GetItemTrait(bagId,slotId) == ITEM_TRAIT_TYPE_ARMOR_ORNATE or GetItemTrait(bagId,slotId) == ITEM_TRAIT_TYPE_WEAPON_ORNATE
+  local trait = GetItemTrait(bagid, slotId)
+  return trait == ITEM_TRAIT_TYPE_ARMOR_ORNATE or trait == ITEM_TRAIT_TYPE_WEAPON_ORNATE or trait == ITEM_TRAIT_TYPE_JEWELRY_ORNATE
 end
 
 local function isIntricate(bagId, slotId)
   local trait = GetItemTrait(bagId, slotId)
-  hasIntricateTrait = (trait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE) or (trait == ITEM_TRAIT_TYPE_WEAPON_INTRICATE)
+  hasIntricateTrait = trait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE or trait == ITEM_TRAIT_TYPE_WEAPON_INTRICATE or trait == ITEM_TRAIT_TYPE_JEWELRY_INTRICATE
   return hasIntricateTrait
 end
 

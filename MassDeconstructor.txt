@@ -2,7 +2,7 @@
 ## Description: This addon mass deconstructs all items determined by your configured conditions
 ## APIVersion: 100023
 ## Author: ahmetertem
-## Version: 3.0
+## Version: 3.3
 ## DependsOn:
 ## OptionalDependsOn: LibAddonMenu-2.0
 ## SavedVariables: MassDeconstructorSavedVars
