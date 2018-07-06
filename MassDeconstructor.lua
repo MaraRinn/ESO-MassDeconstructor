@@ -94,14 +94,31 @@ local function IsMarkedForBreaking(bagId, slotId)
 end
 
 local function IsOrnate(bagId,slotId)
+  local traitInformation = GetItemTraitInformation(bagId, slotId)
+  if traitInformation == ITEM_TRAIT_INFORMATION_ORNATE then
+    DebugMessage(' - ornate through GetItemTraitInformation')
+    return true
+  end
   local trait = GetItemTrait(bagid, slotId)
-  return trait == ITEM_TRAIT_TYPE_ARMOR_ORNATE or trait == ITEM_TRAIT_TYPE_WEAPON_ORNATE or trait == ITEM_TRAIT_TYPE_JEWELRY_ORNATE
+  if trait == ITEM_TRAIT_TYPE_ARMOR_ORNATE or trait == ITEM_TRAIT_TYPE_WEAPON_ORNATE or trait == ITEM_TRAIT_TYPE_JEWELRY_ORNATE then
+    DebugMessage(' - ornate through GetItemTrait')
+    return true
+  end
+  return false
 end
 
-local function isIntricate(bagId, slotId)
+local function IsIntricate(bagId, slotId)
+  local traitInformation = GetItemTraitInformation(bagId, slotId)
+  if traitInformation == ITEM_TRAIT_INFORMATION_INTRICATE then
+    DebugMessage(' - intricate through GetItemTraitInformation')
+    return true
+  end
   local trait = GetItemTrait(bagId, slotId)
-  hasIntricateTrait = trait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE or trait == ITEM_TRAIT_TYPE_WEAPON_INTRICATE or trait == ITEM_TRAIT_TYPE_JEWELRY_INTRICATE
-  return hasIntricateTrait
+  if trait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE or trait == ITEM_TRAIT_TYPE_WEAPON_INTRICATE or trait == ITEM_TRAIT_TYPE_JEWELRY_INTRICATE then
+    DebugMessage(' - intricate through GetItemTrait')
+    return true
+  end
+  return false
 end
 
 local function isItemBindable(bagId, slotIndex)
@@ -137,7 +154,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   local itemLink = GetItemLink(bagId, slotIndex)
   local boundType = isItemBindable(bagId, slotIndex)
   local isSetPc = isSetPiece(itemLink)
-  local isIntricateItem = isIntricate(bagId, slotIndex)
+  local isIntricateItem = IsIntricate(bagId, slotIndex)
   local isOrnateItem = IsOrnate(bagId, slotIndex)
   local isGlyph = LII:IsGlyph(bagId, slotIndex)
 
