@@ -348,6 +348,12 @@ end
 
 local function ShouldRefineItem(bagId, slotIndex, itemLink)
   local itemType = GetItemLinkItemType(itemLink)
+  local name = GetItemName(bagId, slotIndex)
+  local backpackCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
+  local totalCount = backpackCount + bankCount + craftBagCount
+  if totalCount == 27 then
+    DebugMessage(zo_strformat("Should I refine <<2>> <<1>>? <<4>> is itemType <<3>>.", itemLink, totalCount, itemType, name))
+  end
   if (
       itemType == ITEMTYPE_RAW_MATERIAL
       or (MD.isBlacksmithing and itemType == ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)
@@ -357,10 +363,6 @@ local function ShouldRefineItem(bagId, slotIndex, itemLink)
       or (MD.isJewelryCrafting and itemType == ITEMTYPE_JEWELRYCRAFTING_RAW_BOOSTER)
       or (MD.isJewelryCrafting and itemType == ITEMTYPE_JEWELRY_RAW_TRAIT)
       ) then
-    local name = GetItemName(bagId, slotIndex)
-    local backpackCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
-    local totalCount = backpackCount + bankCount + craftBagCount
-    DebugMessage(zo_strformat("Should I refine <<2>> <<1>>?", itemLink, totalCount))
     if totalCount >= GetRequiredSmithingRefinementStackSize() then
       return true
     end
@@ -373,7 +375,6 @@ local function AddCraftingBagItemsToRefineQueue()
   DebugMessage("Checking crafting bag for refinable items")
   slotIndex = GetNextVirtualBagSlotId(nil)
   while slotIndex ~= nil do
-    slotIndex = GetNextVirtualBagSlotId(slotIndex)
     local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
     if ShouldRefineItem(bagId, slotIndex, itemLink) then
       x = {}
@@ -383,6 +384,7 @@ local function AddCraftingBagItemsToRefineQueue()
       table.insert(MD.refineQueue, x)
       DebugMessage("Refine queue length: " .. #MD.refineQueue)
     end
+    slotIndex = GetNextVirtualBagSlotId(slotIndex)
   end
 end
 
@@ -549,13 +551,13 @@ function MD.Initialize(event, addon)
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL),
       keybind = "MD_DECONSTRUCTOR_DECON_ALL",
       callback = function() MD.StartDeconstruction() end,
-      visible = function() return true end,
+      visible = function() return MD.isClothing or MD.isBlacksmithing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting end,
     },
     {
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_REFINE_ALL),
       keybind = "MD_DECONSTRUCTOR_REFINE_ALL",
       callback = function() MD.StartRefining() end,
-      visible = function() return not MD.isEnchanting end,
+      visible = function() return MD.isClothing or MD.isBlacksmithing or MD.isWoodworking or MD.isJewelryCrafting end,
     },
     alignment = KEYBIND_STRIP_ALIGN_CENTER,
   }
