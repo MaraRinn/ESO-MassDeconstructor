@@ -4,7 +4,7 @@ if MD == nil then MD = {} end
 local LII = LibStub:GetLibrary("LibItemInfo-1.0")
 
 MD.name = "MassDeconstructor"
-MD.version = "3.3"
+MD.version = "3.4"
 
 MD.settings = {}
 
