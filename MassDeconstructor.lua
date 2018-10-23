@@ -273,7 +273,7 @@ local function AddItemsToDeconstructionQueue(bagId)
     local bagSlots = GetBagSize(bagId)
     for slotIndex = 0, bagSlots do
       local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
-      if ShouldDeconstructItem(bagId, slotIndex, itemLink) or IsMarkedForBreaking(bagId, slotId) then
+      if ShouldDeconstructItem(bagId, slotIndex, itemLink) then
         x = {}
         x.bagId = bagId
         x.slotIndex = slotIndex
@@ -392,6 +392,8 @@ local function BuildRefiningQueue()
   MD.refineQueue = {}
   if HasCraftBagAccess() then
     AddCraftingBagItemsToRefineQueue()
+  else
+    DebugMessage("This account doesn't have a crafting bag")
   end
 end
 
