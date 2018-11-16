@@ -502,7 +502,7 @@ function MD.OnCrafting(eventCode, craftingType)
     end
   end
 
-  if MD.settings.Verbose and (MD.isBlacksmithing or MD.isClothing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting). then
+  if MD.settings.Verbose and (MD.isBlacksmithing or MD.isClothing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting) then
     BuildDeconstructionQueue()
     ListItemsInQueue()
 
