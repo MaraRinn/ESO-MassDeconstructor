@@ -4,7 +4,7 @@ if MD == nil then MD = {} end
 local LII = LibStub:GetLibrary("LibItemInfo-1.0")
 
 MD.name = "MassDeconstructor"
-MD.version = "3.4"
+MD.version = "4.1"
 
 MD.settings = {}
 
@@ -502,13 +502,13 @@ function MD.OnCrafting(eventCode, craftingType)
     end
   end
 
-  if MD.settings.Verbose then
+  if MD.settings.Verbose and (MD.isBlacksmithing or MD.isClothing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting). then
     BuildDeconstructionQueue()
     ListItemsInQueue()
-  end
 
-  KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
-  KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
+    KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
+  end
 end
 
 function MD.OnCraftEnd()
