@@ -351,9 +351,6 @@ local function ShouldRefineItem(bagId, slotIndex, itemLink)
   local name = GetItemName(bagId, slotIndex)
   local backpackCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
   local totalCount = backpackCount + bankCount + craftBagCount
-  if totalCount == 27 then
-    DebugMessage(zo_strformat("Should I refine <<2>> <<1>>? <<4>> is itemType <<3>>.", itemLink, totalCount, itemType, name))
-  end
   if (
       itemType == ITEMTYPE_RAW_MATERIAL
       or (MD.isBlacksmithing and itemType == ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)
@@ -364,6 +361,7 @@ local function ShouldRefineItem(bagId, slotIndex, itemLink)
       or (MD.isJewelryCrafting and itemType == ITEMTYPE_JEWELRY_RAW_TRAIT)
       ) then
     if totalCount >= GetRequiredSmithingRefinementStackSize() then
+      DebugMessage(zo_strformat("Refining <<2>> <<1>>? <<4>> is itemType <<3>>.", itemLink, totalCount, itemType, name))
       return true
     end
   end
@@ -382,10 +380,26 @@ local function AddCraftingBagItemsToRefineQueue()
       x.slotIndex = slotIndex
       x.itemLink = itemLink
       table.insert(MD.refineQueue, x)
-      DebugMessage("Refine queue length: " .. #MD.refineQueue)
     end
     slotIndex = GetNextVirtualBagSlotId(slotIndex)
   end
+  DebugMessage("Refine queue length: " .. #MD.refineQueue)
+end
+
+local function AddItemsToRefineQueue(bagId)
+    DebugMessage("AddItemsToRefineQueue " .. bagId)
+    local bagSlots = GetBagSize(bagId)
+    for slotIndex = 0, bagSlots do
+      local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
+      if ShouldRefineItem(bagId, slotIndex, itemLink) then
+        x = {}
+        x.bagId = bagId
+        x.slotIndex = slotIndex
+        x.itemLink = itemLink
+        table.insert(MD.refineQueue, x)
+      end
+    end
+    DebugMessage("Refine queue length: " .. #MD.refineQueue)
 end
 
 local function BuildRefiningQueue()
@@ -394,6 +408,13 @@ local function BuildRefiningQueue()
     AddCraftingBagItemsToRefineQueue()
   else
     DebugMessage("This account doesn't have a crafting bag")
+  end
+  AddItemsToRefineQueue(BAG_BACKPACK)
+  if MD.settings.BankMode then 
+    -- subscribers get extra bank space
+    if IsESOPlusSubscriber() then AddItemsToRefineQueue(BAG_SUBSCRIBER_BANK) end
+    -- regular bank
+    AddItemsToRefineQueue(BAG_BANK)
   end
 end
 
@@ -505,10 +526,10 @@ function MD.OnCrafting(eventCode, craftingType)
   if MD.settings.Verbose and (MD.isBlacksmithing or MD.isClothing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting) then
     BuildDeconstructionQueue()
     ListItemsInQueue()
-
-    KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
   end
+
+  KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
+  KEYBIND_STRIP:UpdateKeybindButtonGroup(MD.KeybindStripDescriptor)
 end
 
 function MD.OnCraftEnd()
