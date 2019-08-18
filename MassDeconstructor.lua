@@ -4,7 +4,7 @@ if MD == nil then MD = {} end
 local LII = LibStub:GetLibrary("LibItemInfo-1.0")
 
 MD.name = "MassDeconstructor"
-MD.version = "4.3"
+MD.version = "4.4"
 
 MD.settings = {}
 
@@ -121,7 +121,7 @@ local function IsIntricate(bagId, slotId)
   return false
 end
 
-local function isItemBindable(bagId, slotIndex)
+local function IsItemBindable(bagId, slotIndex)
   local itemLink = GetItemLink(bagId, slotIndex)
   if itemLink then
     --Bound
@@ -143,7 +143,7 @@ local function isItemBindable(bagId, slotIndex)
   end
 end
 
-local function isSetPiece(itemLink)
+local function IsSetPiece(itemLink)
   local hasSet, _, numBonuses, _, _ = GetItemLinkSetInfo(itemLink)
   return hasSet
 end
@@ -152,8 +152,8 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   local _, CraftingSkillType = LII:GetResearchInfo(bagId, slotIndex)
   local sIcon, iStack, iSellPrice, bMeetsUsageRequirement, isLocked, iEquipType , iItemStyle, quality = GetItemInfo(bagId, slotIndex)
   local itemLink = GetItemLink(bagId, slotIndex)
-  local boundType = isItemBindable(bagId, slotIndex)
-  local isSetPc = isSetPiece(itemLink)
+  local boundType = IsItemBindable(bagId, slotIndex)
+  local isSetPc = IsSetPiece(itemLink)
   local isIntricateItem = IsIntricate(bagId, slotIndex)
   local isOrnateItem = IsOrnate(bagId, slotIndex)
   local isGlyph = LII:IsGlyph(bagId, slotIndex)
@@ -307,7 +307,7 @@ end
 
 function MD.ContinueWork()
   DebugMessage("Deconstruct queue count: "..#MD.deconstructQueue)
-  if SMITHING.deconstructionPanel.extractionSlot:HasItem() then
+  if SMITHING.deconstructionPanel.extractionSlot:HasItems() then
     DebugMessage("Extracting item already in deconstruction slot")
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, MD.ContinueWork)
     if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
@@ -319,7 +319,7 @@ function MD.ContinueWork()
       ExtractEnchantingItem(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
     else
       SMITHING:AddItemToCraft(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
-      if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
+      if not MD.isDebug then SMITHING.deconstructionPanel:ExtractSingle() end
     end
   else
     DebugMessage("Deconstruction done.")
@@ -330,7 +330,8 @@ end
 function MD.StartDeconstruction() 
   if MD.isEnchanting then
     if ENCHANTING.enchantingMode ~= ENCHANTING_MODE_EXTRACTION then
-      ENCHANTING:SetEnchantingMode(ENCHANTING_MODE_EXTRACTION)
+      ENCHANTING.enchantingMode = ENCHANTING_MODE_EXTRACTION
+      ENCHANTING:OnModeUpdated()
     end
   else
     if SMITHING.mode ~= SMITHING_MODE_DECONSTRUCTION then
