@@ -310,13 +310,14 @@ function MD.ContinueWork()
   if SMITHING.deconstructionPanel.extractionSlot:HasItems() then
     DebugMessage("Extracting item already in deconstruction slot")
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, MD.ContinueWork)
-    if not MD.isDebug then SMITHING.deconstructionPanel:Extract() end
+    if not MD.isDebug then SMITHING.deconstructionPanel:ExtractSingle() end
   elseif #MD.deconstructQueue > 0 then
     itemToDeconstruct = table.remove(MD.deconstructQueue)
     DebugMessage("Deconstructing: " .. itemToDeconstruct.itemLink)
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, MD.ContinueWork)
     if MD.isEnchanting then
-      ExtractEnchantingItem(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
+      ENCHANTING:AddItemToCraft(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
+      if not MD.isDebug then ENCHANTING:ExtractSingle() end
     else
       SMITHING:AddItemToCraft(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex)
       if not MD.isDebug then SMITHING.deconstructionPanel:ExtractSingle() end
@@ -330,12 +331,13 @@ end
 function MD.StartDeconstruction() 
   if MD.isEnchanting then
     if ENCHANTING.enchantingMode ~= ENCHANTING_MODE_EXTRACTION then
-      ENCHANTING.enchantingMode = ENCHANTING_MODE_EXTRACTION
-      ENCHANTING:OnModeUpdated()
+      DebugMessage('Setting extraction mode')
+      ZO_MenuBar_SelectDescriptor(ENCHANTING.modeBar, ENCHANTING_MODE_EXTRACTION)
     end
   else
     if SMITHING.mode ~= SMITHING_MODE_DECONSTRUCTION then
-      SMITHING:SetMode(SMITHING_MODE_DECONSTRUCTION)
+      DebugMessage('Setting deconstruction mode')
+      ZO_MenuBar_SelectDescriptor(SMITHING.modeBar, SMITHING_MODE_DECONSTRUCTION)
     end
   end
   
@@ -448,11 +450,9 @@ local function ProcessRefiningQueue()
     local itemToRefine = table.remove(MD.refineQueue)
     SMITHING:AddItemToCraft(itemToRefine.bagId, itemToRefine.slotIndex)
   end
-  if MD.isDebug then
-    DebugMessage('(In debug mode. Check that a refinable quantity is about to be refined.)')
-  elseif StackBigEnoughToRefine() then
+  if StackBigEnoughToRefine() then
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
-    SMITHING.refinementPanel:Extract()
+    if not MD.isDebug then SMITHING.refinementPanel:Extract() end
   else
     DebugMessage('Nothing left to refine')
     CleanupAfterRefining()
@@ -464,7 +464,8 @@ function MD.StartRefining()
     return
   end
   if SMITHING.mode ~= SMITHING_MODE_REFINMENT then
-    SMITHING:SetMode(SMITHING_MODE_REFINMENT)
+    DebugMessage('Setting refining mode')
+    ZO_MenuBar_SelectDescriptor(SMITHING.modeBar, SMITHING_MODE_REFINMENT)
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
   end
   BuildRefiningQueue()
