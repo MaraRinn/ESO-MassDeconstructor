@@ -349,6 +349,16 @@ function MD.StartDeconstruction()
   end
 end
 
+function MD.DeconstructionKeypress()
+  if MD.SceneCheck() then
+    MD.StartDeconstruction()
+  end
+end
+
+function MD.DeconstructionButton()
+  MD.DeconstructionKeypress()
+end
+
 local function ShouldRefineItem(bagId, slotIndex, itemLink)
   local itemType = GetItemLinkItemType(itemLink)
   local name = GetItemName(bagId, slotIndex)
@@ -474,6 +484,16 @@ function MD.StartRefining()
   end
 end
 
+function MD.RefiningKeypress()
+  if MD.SceneCheck() then
+    MD.StartRefining()
+  end
+end
+
+function MD.RefiningButton()
+  MD.RefiningKeypress()
+end
+
 local function processSlashCommands(option)
   local options = {}
   local searchResult = { string.match(option,"^(%S*)%s*(.-)$") }
@@ -547,6 +567,15 @@ function MD.OnCraftEnd()
   EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
 end
 
+function MD.SceneCheck()
+  local sceneName = SCENE_MANAGER.currentScene.name
+  DebugMessage('Scene name: ' .. sceneName)
+  if sceneName == 'enchanting' or sceneName == 'smithing' then
+    return true
+  end
+  return false
+end
+
 function MD:RegisterEvents()
   EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFTING_STATION_INTERACT, MD.OnCrafting)
   EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_END_CRAFTING_STATION_INTERACT, MD.OnCraftEnd)
@@ -575,13 +604,13 @@ function MD.Initialize(event, addon)
     {
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL),
       keybind = "MD_DECONSTRUCTOR_DECON_ALL",
-      callback = function() MD.StartDeconstruction() end,
+      callback = function() MD.DeconstructionButton() end,
       visible = function() return MD.isClothing or MD.isBlacksmithing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting end,
     },
     {
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_REFINE_ALL),
       keybind = "MD_DECONSTRUCTOR_REFINE_ALL",
-      callback = function() MD.StartRefining() end,
+      callback = function() MD.RefiningButton() end,
       visible = function() return MD.isClothing or MD.isBlacksmithing or MD.isWoodworking or MD.isJewelryCrafting end,
     },
     alignment = KEYBIND_STRIP_ALIGN_CENTER,
@@ -593,6 +622,11 @@ function MD.Initialize(event, addon)
   MD.deconstructQueue = {}
   MD.refineQueue = {}
   MD.itemToDeconstruct = nil
+  MD.isBlacksmithing = false
+  MD.isClothing = false
+  MD.isWoodworking = false
+  MD.isEnchanting = false
+  MD.isJewelryCrafting = false
 end
 
 
