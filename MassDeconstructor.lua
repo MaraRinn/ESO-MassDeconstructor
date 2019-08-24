@@ -355,6 +355,10 @@ function MD.DeconstructionKeypress()
   end
 end
 
+function MD.DeconstructionButton()
+  MD.DeconstructionKeypress()
+end
+
 local function ShouldRefineItem(bagId, slotIndex, itemLink)
   local itemType = GetItemLinkItemType(itemLink)
   local name = GetItemName(bagId, slotIndex)
@@ -484,6 +488,10 @@ function MD.RefiningKeypress()
   if MD.SceneCheck() then
     MD.StartRefining()
   end
+end
+
+function MD.RefiningButton()
+  MD.RefiningKeypress()
 end
 
 local function processSlashCommands(option)
