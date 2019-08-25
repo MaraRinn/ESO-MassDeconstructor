@@ -33,7 +33,7 @@ MD.defaults = {
   },
   JewelryCrafting = {
     maxQuality = 4,
-    DesconstructIntricate = false,
+    DeconstructIntricate = false,
   },
 }
 
@@ -153,10 +153,13 @@ local function GetCraftingTypeFromItemLink(itemLink)
     DebugMessage(' - item is armour')
     local armorType = GetItemLinkArmorType(itemLink)
     if armorType == ARMORTYPE_HEAVY then
+      DebugMessage(' - heavy armor')
       return CRAFTING_TYPE_BLACKSMITHING, itemType, specialisedItemType
     elseif armorType == ARMORTYPE_LIGHT or armorType == ARMORTYPE_MEDIUM then
-      return CRAFTING_TYPE_CLOTHING, itemType, specialisedItemType
+      DebugMessage(' - medium or light armor')
+      return CRAFTING_TYPE_CLOTHIER, itemType, specialisedItemType
     elseif armorType == ARMORTYPE_NONE then
+      DebugMessage(' - jewellery')
       return CRAFTING_TYPE_JEWELRYCRAFTING, itemType, specialisedItemType
     else
       DebugMessage('Unknown armor type ' .. armorType)
@@ -210,6 +213,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
       (MD.isWoodworking and CraftingSkillType ~= CRAFTING_TYPE_WOODWORKING) or
       (MD.isJewelryCrafting and CraftingSkillType ~= CRAFTING_TYPE_JEWELRYCRAFTING) or
       (MD.isEnchanting and CraftingSkillType ~= CRAFTING_TYPE_ENCHANTING) then
+    DebugMessage(" - invalid type for crafting station")
     return false
   end
 
