@@ -2,7 +2,7 @@
 ## Description: This addon mass deconstructs all items determined by your configured conditions
 ## APIVersion: 100028
 ## Author: ahmetertem
-## Version: 4.4b
+## Version: 4.4
 ## SavedVariables: MassDeconstructorSavedVars
 
 lib\LibStub\LibStub.lua
