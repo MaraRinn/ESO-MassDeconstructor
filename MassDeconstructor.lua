@@ -1,7 +1,6 @@
 local _
 
 if MD == nil then MD = {} end
-local LII = LibStub:GetLibrary("LibItemInfo-1.0")
 
 MD.name = "MassDeconstructor"
 MD.version = "4.4"
@@ -34,7 +33,7 @@ MD.defaults = {
   },
   JewelryCrafting = {
     maxQuality = 4,
-    DesconstructIntricate = false,
+    DeconstructIntricate = false,
   },
 }
 
@@ -148,33 +147,82 @@ local function IsSetPiece(itemLink)
   return hasSet
 end
 
+local function GetCraftingTypeFromItemLink(itemLink)
+  local itemType, specialisedItemType = GetItemLinkItemType(itemLink)
+  if itemType == ITEMTYPE_ARMOR then
+    DebugMessage(' - item is armour')
+    local armorType = GetItemLinkArmorType(itemLink)
+    if armorType == ARMORTYPE_HEAVY then
+      DebugMessage(' - heavy armor')
+      return CRAFTING_TYPE_BLACKSMITHING, itemType, specialisedItemType
+    elseif armorType == ARMORTYPE_LIGHT or armorType == ARMORTYPE_MEDIUM then
+      DebugMessage(' - medium or light armor')
+      return CRAFTING_TYPE_CLOTHIER, itemType, specialisedItemType
+    elseif armorType == ARMORTYPE_NONE then
+      DebugMessage(' - jewellery')
+      return CRAFTING_TYPE_JEWELRYCRAFTING, itemType, specialisedItemType
+    else
+      DebugMessage('Unknown armor type ' .. armorType)
+    end
+  elseif (itemType == ITEMTYPE_WEAPON) then
+    DebugMessage(' - is a weapon')
+    local weaponType = GetItemLinkWeaponType(itemLink)
+    if
+        (weaponType == WEAPONTYPE_AXE) or
+        (weaponType == WEAPONTYPE_DAGGER) or
+        (weaponType == WEAPONTYPE_HAMMER) or
+        (weaponType == WEAPONTYPE_SWORD) or
+        (weaponType == WEAPONTYPE_TWO_HANDED_AXE) or
+        (weaponType == WEAPONTYPE_TWO_HANDED_HAMMER) or
+        (weaponType == WEAPONTYPE_TWO_HANDED_SWORD)
+        then
+      DebugMessage(' - blacksmithing')
+      return CRAFTING_TYPE_BLACKSMITHING, itemType, specialisedItemType
+    elseif
+        weaponType == WEAPONTYPE_BOW or
+        weaponType == WEAPONTYPE_FIRE_STAFF or
+        weaponType == WEAPONTYPE_FROST_STAFF or
+        weaponType == WEAPONTYPE_LIGHTNING_STAFF or
+        weaponType == WEAPONTYPE_HEALING_STAFF or
+        weaponType == WEAPONTYPE_SHIELD
+        then
+      DebugMessage(' - woodworking')
+      return CRAFTING_TYPE_WOODWORKING, itemType, specialisedItemType
+    end
+  elseif itemType == ITEMTYPE_GLYPH_ARMOR or itemType == ITEMTYPE_GLYPH_JEWELRY or itemType == ITEMTYPE_GLYPH_WEAPON then
+    DebugMessage(' - item is a glyph')
+    return CRAFTING_TYPE_ENCHANTING, itemType, specialisedItemType
+  end
+  DebugMessage(' - item type ' .. itemType ..' is unknown')
+  return CRAFTING_TYPE_INVALID, itemType, specialisedItemType
+end
+
 local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
-  local _, CraftingSkillType = LII:GetResearchInfo(bagId, slotIndex)
+  DebugMessage(itemLink .. ' processing in ShouldDeconstructItem')
+  local CraftingSkillType, itemType, specialisedItemType = GetCraftingTypeFromItemLink(itemLink)
   local sIcon, iStack, iSellPrice, bMeetsUsageRequirement, isLocked, iEquipType , iItemStyle, quality = GetItemInfo(bagId, slotIndex)
-  local itemLink = GetItemLink(bagId, slotIndex)
   local boundType = IsItemBindable(bagId, slotIndex)
   local isSetPc = IsSetPiece(itemLink)
   local isIntricateItem = IsIntricate(bagId, slotIndex)
   local isOrnateItem = IsOrnate(bagId, slotIndex)
-  local isGlyph = LII:IsGlyph(bagId, slotIndex)
 
   -- Sanity check: don't even consider items that don't belong in the queue
+  DebugMessage(' - itemType is ' .. itemType .. ' and specialised type is ' .. specialisedItemType)
   if  (MD.isBlacksmithing and CraftingSkillType ~= CRAFTING_TYPE_BLACKSMITHING) or
       (MD.isClothing and CraftingSkillType ~= CRAFTING_TYPE_CLOTHIER) or
       (MD.isWoodworking and CraftingSkillType ~= CRAFTING_TYPE_WOODWORKING) or
       (MD.isJewelryCrafting and CraftingSkillType ~= CRAFTING_TYPE_JEWELRYCRAFTING) or
-      (MD.isEnchanting and not isGlyph) then
+      (MD.isEnchanting and CraftingSkillType ~= CRAFTING_TYPE_ENCHANTING) then
+    DebugMessage(" - invalid type for crafting station")
     return false
   end
-
-  DebugMessage(itemLink .. " -- Crafting Skill Type: " .. CraftingSkillType .. " Equip type: " .. iEquipType)
 
   if IsItemProtected(bagId, slotIndex) then
     DebugMessage(" - Item is protected")
     return false
   end
   
-  if CanItemBeSmithingExtractedOrRefined(bagId, slotIndex, CraftingSkillType) or isGlyph then
+  if CanItemBeSmithingExtractedOrRefined(bagId, slotIndex, CraftingSkillType) then
     DebugMessage(" - can be deconstructed")
   else
     DebugMessage(" - can NOT be deconstructed")
@@ -187,7 +235,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
     return true
   end
 
-  if CraftingSkillType == CRAFTING_TYPE_INVALID and not isGlyph then
+  if CraftingSkillType == CRAFTING_TYPE_INVALID then
     DebugMessage(" - Invalid crafting type")
     return false
   end
@@ -256,11 +304,11 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
       DebugMessage('Skipping intricate jewellery item: ' .. itemLink)
       return false
     end
-  elseif isGlyph then
-    if quality > MD.settings.Enchanting.maxQuality then
+  elseif CraftingSkillType == CRAFTING_TYPE_ENCHANTING then
+    if not MD.isEnchanting then
       return false
     end
-    if not MD.isEnchanting then
+    if quality > MD.settings.Enchanting.maxQuality then
       return false
     end
   end
@@ -324,7 +372,8 @@ function MD.ContinueWork()
     end
   else
     DebugMessage("Deconstruction done.")
-    EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED) 
+    EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
+    KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
   end
 end
 
@@ -345,6 +394,7 @@ function MD.StartDeconstruction()
 
   -- : reset counter
   if #MD.deconstructQueue > 0 then
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
     MD.ContinueWork()
   end
 end
@@ -451,6 +501,7 @@ end
 
 local function CleanupAfterRefining()
   SMITHING.refinementPanel:ClearSelections()
+  KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
 end
 
 local function ProcessRefiningQueue()
@@ -480,6 +531,7 @@ function MD.StartRefining()
   end
   BuildRefiningQueue()
   if #MD.refineQueue > 0 then
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
     ProcessRefiningQueue()
   end
 end
