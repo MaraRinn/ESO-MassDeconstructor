@@ -3,7 +3,7 @@ local _
 if MD == nil then MD = {} end
 
 MD.name = "MassDeconstructor"
-MD.version = "4.4"
+MD.version = "4.5"
 
 MD.settings = {}
 
@@ -513,7 +513,7 @@ local function ProcessRefiningQueue()
   end
   if StackBigEnoughToRefine() then
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
-    if not MD.isDebug then SMITHING.refinementPanel:Extract() end
+    if not MD.isDebug then SMITHING.refinementPanel:ExtractSingle() end
   else
     DebugMessage('Nothing left to refine')
     CleanupAfterRefining()
