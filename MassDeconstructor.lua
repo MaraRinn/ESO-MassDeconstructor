@@ -395,7 +395,13 @@ function MD.StartDeconstruction()
   -- : reset counter
   if #MD.deconstructQueue > 0 then
     KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
-    MD.ContinueWork()
+    PrepareDeconstructMessage()
+    for index, itemToDeconstruct in ipairs(MD.deconstructQueue) do
+      DebugMessage('AddItemToDeconstructMessage: ' ..itemToDeconstruct.itemLink)
+      AddItemToDeconstructMessage(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex, itemToDeconstruct.quantity)
+    end
+    SendDeconstructMessage()
+    KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
   end
 end
 
