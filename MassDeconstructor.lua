@@ -3,7 +3,7 @@ local _
 if MD == nil then MD = {} end
 
 MD.name = "MassDeconstructor"
-MD.version = "4.4"
+MD.version = "4.5"
 
 MD.settings = {}
 
@@ -395,7 +395,13 @@ function MD.StartDeconstruction()
   -- : reset counter
   if #MD.deconstructQueue > 0 then
     KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
-    MD.ContinueWork()
+    PrepareDeconstructMessage()
+    for index, itemToDeconstruct in ipairs(MD.deconstructQueue) do
+      DebugMessage('AddItemToDeconstructMessage: ' ..itemToDeconstruct.itemLink)
+      AddItemToDeconstructMessage(itemToDeconstruct.bagId, itemToDeconstruct.slotIndex, itemToDeconstruct.quantity)
+    end
+    SendDeconstructMessage()
+    KEYBIND_STRIP:AddKeybindButtonGroup(MD.KeybindStripDescriptor)
   end
 end
 
@@ -513,7 +519,7 @@ local function ProcessRefiningQueue()
   end
   if StackBigEnoughToRefine() then
     EVENT_MANAGER:RegisterForEvent(MD.name, EVENT_CRAFT_COMPLETED, ProcessRefiningQueue)
-    if not MD.isDebug then SMITHING.refinementPanel:Extract() end
+    if not MD.isDebug then SMITHING.refinementPanel:ExtractSingle() end
   else
     DebugMessage('Nothing left to refine')
     CleanupAfterRefining()
