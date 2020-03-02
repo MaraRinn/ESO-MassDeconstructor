@@ -6,7 +6,7 @@ if MD == nil then MD = {} end
 --
 function MD.MakeMenu()
   -- load the settings->addons menu library
-  local menu = LibStub("LibAddonMenu-2.0")
+  local menu = LibAddonMenu2
   local set = MD.settings
 
   -- the panel for the addons menu
