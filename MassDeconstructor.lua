@@ -3,7 +3,7 @@ local _
 if MD == nil then MD = {} end
 
 MD.name = "MassDeconstructor"
-MD.version = "5.0"
+MD.version = "5.2"
 
 MD.settings = {}
 
