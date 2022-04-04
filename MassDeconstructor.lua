@@ -18,22 +18,27 @@ MD.defaults = {
   Clothing = {
     maxQuality = 4,
     DeconstructIntricate = false,
+    AllowDeconstruction = true,
   },
   Blacksmithing = {
     maxQuality = 4,
     DeconstructIntricate = false,
+    AllowDeconstruction = true,
   },
   Woodworking = {
     maxQuality = 4,
     DeconstructIntricate = false,
+    AllowDeconstruction = true,
   },
   Enchanting = {
     maxQuality = 4,
     DeconstructIntricate = false,
+    AllowDeconstruction = true,
   },
   JewelryCrafting = {
     maxQuality = 4,
     DeconstructIntricate = false,
+    AllowDeconstruction = true,
   },
 }
 
@@ -46,7 +51,13 @@ MD.Inventory = {
 }
 
 local function DebugMessage(message)
-  if MD.isDebug then
+  if MD.settings.Debug then
+    d(message)
+  end
+end
+
+local function VerboseDebugMessage(message)
+  if MD.settings.Debug and MD.settings.Verbose then
     d(message)
   end
 end
@@ -198,7 +209,7 @@ local function GetCraftingTypeFromItemLink(itemLink)
 end
 
 local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
-  DebugMessage(itemLink .. ' processing in ShouldDeconstructItem')
+  VerboseDebugMessage(itemLink .. ' processing in ShouldDeconstructItem')
   local CraftingSkillType, itemType, specialisedItemType = GetCraftingTypeFromItemLink(itemLink)
   local sIcon, iStack, iSellPrice, bMeetsUsageRequirement, isLocked, iEquipType , iItemStyle, quality = GetItemInfo(bagId, slotIndex)
   local boundType = IsItemBindable(bagId, slotIndex)
@@ -207,56 +218,58 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
   local isOrnateItem = IsOrnate(bagId, slotIndex)
 
   -- Sanity check: don't even consider items that don't belong in the queue
-  DebugMessage(' - itemType is ' .. itemType .. ' and specialised type is ' .. specialisedItemType)
-  if  (MD.isBlacksmithing and CraftingSkillType ~= CRAFTING_TYPE_BLACKSMITHING) or
-      (MD.isClothing and CraftingSkillType ~= CRAFTING_TYPE_CLOTHIER) or
-      (MD.isWoodworking and CraftingSkillType ~= CRAFTING_TYPE_WOODWORKING) or
-      (MD.isJewelryCrafting and CraftingSkillType ~= CRAFTING_TYPE_JEWELRYCRAFTING) or
-      (MD.isEnchanting and CraftingSkillType ~= CRAFTING_TYPE_ENCHANTING) then
-    DebugMessage(" - invalid type for crafting station")
+  VerboseDebugMessage(' - itemType is ' .. itemType .. ' and specialised type is ' .. specialisedItemType)
+  if  (MD.isBlacksmithing and MD.settings.Blacksmithing.AllowDeconstruction and CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING) or
+      (MD.isClothing and MD.settings.Clothing.AllowDeconstruction and CraftingSkillType == CRAFTING_TYPE_CLOTHIER) or
+      (MD.isWoodworking and MD.settings.Woodworking.AllowDeconstruction and CraftingSkillType == CRAFTING_TYPE_WOODWORKING) or
+      (MD.isJewelryCrafting and MD.settings.JewelryCrafting.AllowDeconstruction and CraftingSkillType == CRAFTING_TYPE_JEWELRYCRAFTING) or
+      (MD.isEnchanting and MD.settings.Enchanting.AllowDeconstruction and CraftingSkillType == CRAFTING_TYPE_ENCHANTING) then
+        VerboseDebugMessage(" - valid type for crafting station")
+  else
+    VerboseDebugMessage(" - invalid type for crafting station")
     return false
   end
 
   if IsItemProtected(bagId, slotIndex) then
-    DebugMessage(" - Item is protected")
+    VerboseDebugMessage(" - Item is protected")
     return false
   end
   
   if CanItemBeSmithingExtractedOrRefined(bagId, slotIndex, CraftingSkillType) then
-    DebugMessage(" - can be deconstructed")
+    VerboseDebugMessage(" - can be deconstructed")
   else
-    DebugMessage(" - can NOT be deconstructed")
+    VerboseDebugMessage(" - can NOT be deconstructed")
     return false
   end
 
   -- Marking an item for deconstruction using FCOIS voids all warranties
   if IsMarkedForBreaking(bagId, slotIndex) then
-    DebugMessage(" - Item is doomed")
+    VerboseDebugMessage(" - Item is doomed")
     return true
   end
 
   if CraftingSkillType == CRAFTING_TYPE_INVALID then
-    DebugMessage(" - Invalid crafting type")
+    VerboseDebugMessage(" - Invalid crafting type")
     return false
   end
 
   if boundType == 1 and not MD.settings.DeconstructBound then
-    DebugMessage(" - item is bound")
+    VerboseDebugMessage(" - item is bound")
     return false
   end
 
   if isOrnateItem and not MD.settings.DeconstructOrnate then
-    DebugMessage(" - item is ornate")
+    VerboseDebugMessage(" - item is ornate")
     return false
   end
 
   if isSetPc and not MD.settings.DeconstructSetPiece then
-    DebugMessage(" - item is part of a set")
+    VerboseDebugMessage(" - item is part of a set")
     return false
   end
 
   if IsItemLinkCrafted(itemLink) and not MD.settings.DeconstructCrafted then
-    DebugMessage(" - item is crafted")
+    VerboseDebugMessage(" - item is crafted")
     return false
   end
   
@@ -268,7 +281,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
       return false
     end
     if isIntricateItem and not MD.settings.Clothing.DeconstructIntricate then
-      DebugMessage('Skipping intrictate clothing item: ' .. itemLink)
+      VerboseDebugMessage('Skipping intrictate clothing item: ' .. itemLink)
       return false
     end
   elseif CraftingSkillType == CRAFTING_TYPE_BLACKSMITHING then
@@ -279,7 +292,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
       return false
     end
     if isIntricateItem and not MD.settings.Blacksmithing.DeconstructIntricate then
-      DebugMessage('Skipping intrictate blacksmithing item: ' .. itemLink)
+      VerboseDebugMessage('Skipping intrictate blacksmithing item: ' .. itemLink)
       return false
     end
   elseif CraftingSkillType == CRAFTING_TYPE_WOODWORKING then
@@ -290,7 +303,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
       return false
     end
     if isIntricateItem and not MD.settings.Woodworking.DeconstructIntricate then
-      DebugMessage('Skipping intrictate woodworking item: ' .. itemLink)
+      VerboseDebugMessage('Skipping intrictate woodworking item: ' .. itemLink)
       return false
     end
   elseif CraftingSkillType == CRAFTING_TYPE_JEWELRYCRAFTING then
@@ -301,7 +314,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
       return false
     end
     if isIntricateItem and not MD.settings.JewelryCrafting.DeconstructIntricate then
-      DebugMessage('Skipping intricate jewellery item: ' .. itemLink)
+      VerboseDebugMessage('Skipping intricate jewellery item: ' .. itemLink)
       return false
     end
   elseif CraftingSkillType == CRAFTING_TYPE_ENCHANTING then
@@ -312,7 +325,7 @@ local function ShouldDeconstructItem(bagId, slotIndex, itemLink)
       return false
     end
   end
-  DebugMessage("Adding " .. itemLink)
+  VerboseDebugMessage("Adding " .. itemLink)
   return true
 end
 
@@ -572,7 +585,8 @@ function MD.test ()
 end
 
 function MD.OnCrafting(eventCode, craftingType)
-  MD.isDebug = MD.settings.Debug
+  DebugMessage('Checking station type: eventCode ' .. eventCode .. ', craftingType ' .. craftingType)
+
   if craftingType == CRAFTING_TYPE_CLOTHIER then
     MD.isClothing = true
   elseif craftingType == CRAFTING_TYPE_BLACKSMITHING then
@@ -583,11 +597,50 @@ function MD.OnCrafting(eventCode, craftingType)
     MD.isEnchanting = true
   elseif craftingType == CRAFTING_TYPE_JEWELRYCRAFTING then
     MD.isJewelryCrafting = true
+  elseif craftingType == 0 then -- deconstruction assistant
+    MD.isAssistant = true
+    MD.isClothing = true
+    MD.isBlacksmithing = true
+    MD.isWoodworking = true
+    MD.isEnchanting = true
+    MD.isJewelryCrafting = true
   end
 
-  if MD.isDebug then
-    d('Checking station type')
-    if MD.isClothing then
+  if (MD.isClothing and not MD.settings.Clothing.AllowDeconstruction) then
+    DebugMessage('Mass Deconstructor is turned off for clothing')
+    if not MD.isAssistant then
+      return
+    end
+  end
+  if (MD.isBlacksmithing and not MD.settings.Blacksmithing.AllowDeconstruction) then
+    DebugMessage('Mass Deconstructor is turned off for blacksmithing')
+    if not MD.isAssistant then
+      return
+    end
+  end
+  if (MD.isWoodworking and not MD.settings.Woodworking.AllowDeconstruction) then
+    DebugMessage('Mass Deconstructor is turned off for woodworking')
+    if not MD.isAssistant then
+      return
+    end
+  end
+  if (MD.isEnchanting and not MD.settings.Enchanting.AllowDeconstruction) then
+    DebugMessage('Mass Deconstructor is turned off for enchanting')
+    if not MD.isAssistant then
+      return
+    end
+  end
+  if (MD.isJewelryCrafting and not MD.settings.JewelryCrafting.AllowDeconstruction) then
+    DebugMessage('Mass Deconstructor is turned off for jewelry')
+    if not MD.isAssistant then
+      return
+    end
+  end
+
+  if MD.settings.Debug then
+    if MD.isAssistant then
+      d("MD Deconstruction Assistant")
+    elseif MD.isClothing then
       d("MD Clothier")
     elseif MD.isBlacksmithing then
       d("MD Blacksmith")
@@ -595,15 +648,16 @@ function MD.OnCrafting(eventCode, craftingType)
       d("MD Woodworker")
     elseif MD.isEnchanting then
       d("MD Enchanter")
-   elseif MD.isJewelryCrafting then
+    elseif MD.isJewelryCrafting then
       d("MD Jewelry Crafting")
     else
-      d("MD unknown: " .. craftingType)
+      d("MD unknown")
       return
     end
   end
 
   if MD.settings.Verbose and (MD.isBlacksmithing or MD.isClothing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting) then
+    DebugMessage("Preparing mass deconstructor inventory")
     BuildDeconstructionQueue()
     ListItemsInQueue()
   end
@@ -618,7 +672,8 @@ function MD.OnCraftEnd()
   MD.isWoodworking = false
   MD.isEnchanting = false
   MD.isJewelryCrafting = false
-  if MD.isDebug then
+  MD.isAssistant = false
+  if MD.settings.Debug then
     d("MD station leave")
   end
   KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
@@ -629,6 +684,9 @@ function MD.SceneCheck()
   local sceneName = SCENE_MANAGER.currentScene.name
   DebugMessage('Scene name: ' .. sceneName)
   if sceneName == 'enchanting' or sceneName == 'smithing' then
+    return true
+  end
+  if sceneName == 'universalDeconstructionSceneKeyboard' or sceneName == 'universalDeconstructionSceneGamepad' then
     return true
   end
   return false
@@ -650,7 +708,7 @@ function MD.Initialize(event, addon)
   MD:RegisterEvents()
   -- load our saved variables
   MD.settings = ZO_SavedVars:New("MassDeconstructorSavedVars", 1, nil, MD.defaults)
-
+  
   -- make a label for our keybinding
   ZO_CreateStringId("SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL", "Mass Deconstruct")
   ZO_CreateStringId("SI_BINDING_NAME_MD_DECONSTRUCTOR_REFINE_ALL", "Mass Refine")
@@ -663,18 +721,18 @@ function MD.Initialize(event, addon)
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_DECON_ALL),
       keybind = "MD_DECONSTRUCTOR_DECON_ALL",
       callback = function() MD.DeconstructionButton() end,
-      visible = function() return MD.isClothing or MD.isBlacksmithing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting end,
+      visible = function() return MD.isClothing or MD.isBlacksmithing or MD.isWoodworking or MD.isEnchanting or MD.isJewelryCrafting or MD.isAssistant end,
     },
     {
       name = GetString(SI_BINDING_NAME_MD_DECONSTRUCTOR_REFINE_ALL),
       keybind = "MD_DECONSTRUCTOR_REFINE_ALL",
       callback = function() MD.RefiningButton() end,
-      visible = function() return MD.isClothing or MD.isBlacksmithing or MD.isWoodworking or MD.isJewelryCrafting end,
+      visible = function() return MD.isClothing or MD.isBlacksmithing or MD.isWoodworking or MD.isJewelryCrafting or MD.isAssistant end,
     },
     alignment = KEYBIND_STRIP_ALIGN_CENTER,
   }
 
-  MD.isDebug = false
+  MD.isDebug = MD.settings.Debug
   MD.totalDeconstruct = 0
   MD.currentList = {}
   MD.deconstructQueue = {}
