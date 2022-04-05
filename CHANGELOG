@@ -1,0 +1,6 @@
+# Changelog
+
+## 6.0
+
+- Can now use Mass Deconstructor with deconstruction assistant
+- Honours "Include items in bank" checkbox in deconstruction panel rather than global setting
