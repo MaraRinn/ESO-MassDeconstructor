@@ -41,14 +41,6 @@ MD.defaults = {
   },
 }
 
-MD.Inventory = {
-  items = { },
-  clothier = { },
-  blacksmith = { },
-  enchanter = { },
-  woodworker = { },
-}
-
 local function DebugMessage(message)
   if MD.settings.Debug then
     d(message)
@@ -69,7 +61,7 @@ local function IncludeBankedItems()
     includeBankedItemsButton = SMITHING.deconstructionPanel.includeBankedItemsCheckbox
   end
   includeThem = ZO_CheckButton_IsChecked(includeBankedItemsButton)
-  DebugMessage('Include banked items:' .. (includeThem and "Yes" or "no"))
+  DebugMessage('Include banked items:' .. (includeThem and "Yes" or "No"))
   return includeThem
 end
 
@@ -369,7 +361,7 @@ local function BuildDeconstructionQueue()
   MD.deconstructQueue = {}
 
   AddItemsToDeconstructionQueue(BAG_BACKPACK)
-  if MD.IncludeBankedItems() then
+  if IncludeBankedItems() then
     -- subscribers get extra bank space
     if IsESOPlusSubscriber() then AddItemsToDeconstructionQueue(BAG_SUBSCRIBER_BANK) end
     -- regular bank
