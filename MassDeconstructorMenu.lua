@@ -22,12 +22,6 @@ function MD.MakeMenu()
   local options = {
     {
       type = "checkbox",
-      name = "Deconstruct items in bank",
-      getFunc = function() return set.BankMode end,
-      setFunc = function(value) set.BankMode = value end,
-    },
-    {
-      type = "checkbox",
       name = "Deconstruct bound items",
       getFunc = function() return set.DeconstructBound end,
       setFunc = function(value) set.DeconstructBound = value end,

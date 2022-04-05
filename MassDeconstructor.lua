@@ -13,7 +13,6 @@ MD.defaults = {
   DeconstructSetPiece = false,
   DeconstructCrafted = false,
   Debug = false,
-  BankMode = false,
   Verbose = false,
   Clothing = {
     maxQuality = 4,
@@ -60,6 +59,18 @@ local function VerboseDebugMessage(message)
   if MD.settings.Debug and MD.settings.Verbose then
     d(message)
   end
+end
+
+local function IncludeBankedItems()
+  -- include banked items?
+  if MD.isAssistant then
+    includeBankedItemsButton = UNIVERSAL_DECONSTRUCTION.deconstructionPanel.includeBankedItemsCheckbox
+  else
+    includeBankedItemsButton = SMITHING.deconstructionPanel.includeBankedItemsCheckbox
+  end
+  includeThem = ZO_CheckButton_IsChecked(includeBankedItemsButton)
+  DebugMessage('Include banked items:' .. (includeThem and "Yes" or "no"))
+  return includeThem
 end
 
 local function IsItemProtected(bagId, slotId)
@@ -358,7 +369,7 @@ local function BuildDeconstructionQueue()
   MD.deconstructQueue = {}
 
   AddItemsToDeconstructionQueue(BAG_BACKPACK)
-  if MD.settings.BankMode then 
+  if MD.IncludeBankedItems() then
     -- subscribers get extra bank space
     if IsESOPlusSubscriber() then AddItemsToDeconstructionQueue(BAG_SUBSCRIBER_BANK) end
     -- regular bank
@@ -492,7 +503,7 @@ local function BuildRefiningQueue()
     DebugMessage("This account doesn't have a crafting bag")
   end
   AddItemsToRefineQueue(BAG_BACKPACK)
-  if MD.settings.BankMode then 
+  if MD.IncludeBankedItems() then
     -- subscribers get extra bank space
     if IsESOPlusSubscriber() then AddItemsToRefineQueue(BAG_SUBSCRIBER_BANK) end
     -- regular bank
@@ -676,6 +687,7 @@ function MD.OnCraftEnd()
   if MD.settings.Debug then
     d("MD station leave")
   end
+
   KEYBIND_STRIP:RemoveKeybindButtonGroup(MD.KeybindStripDescriptor)
   EVENT_MANAGER:UnregisterForEvent(MD.name, EVENT_CRAFT_COMPLETED)
 end
